@@ -8,13 +8,13 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private BinaryExpression BinaryExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var left = this.Prop(obj, "left", this.Expression);
-            var right = this.Prop(obj, "right", this.Expression);
-            var method = this.Prop(obj, "method", this.Method);
-            var conversion = this.Prop(obj, "conversion", this.LambdaExpression);
-            var liftToNull = this.Prop(obj, "liftToNull").Value<bool>();
+            var left = Prop(obj, "left", Expression);
+            var right = Prop(obj, "right", Expression);
+            var method = Prop(obj, "method", Method);
+            var conversion = Prop(obj, "conversion", LambdaExpression);
+            var liftToNull = Prop(obj, "liftToNull").Value<bool>();
 
             switch (nodeType) {
                 case ExpressionType.Add: return Expr.Add(left, right, method);

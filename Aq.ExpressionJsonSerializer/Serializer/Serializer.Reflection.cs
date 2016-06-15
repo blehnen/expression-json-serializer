@@ -1,23 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Aq.ExpressionJsonSerializer
 {
     partial class Serializer
     {
-        private static readonly Dictionary<Type, Tuple<string, string, Type[]>>
-            TypeCache = new Dictionary<Type, Tuple<string, string, Type[]>>();
+        private static readonly ConcurrentDictionary<Type, Tuple<string, string, Type[]>>
+            TypeCache = new ConcurrentDictionary<Type, Tuple<string, string, Type[]>>();
 
         private Action Type(Type type)
         {
-            return () => this.TypeInternal(type);
+            return () => TypeInternal(type);
         }
 
         private void TypeInternal(Type type)
         {
             if (type == null) {
-                this._writer.WriteNull();
+                _writer.WriteNull();
             }
             else {
                 Tuple<string, string, Type[]> tuple;
@@ -37,99 +37,99 @@ namespace Aq.ExpressionJsonSerializer
                     TypeCache[type] = tuple;
                 }
 
-                this._writer.WriteStartObject();
-                this.Prop("assemblyName", tuple.Item1);
-                this.Prop("typeName", tuple.Item2);
-                this.Prop("genericArguments", this.Enumerable(tuple.Item3, this.Type));
-                this._writer.WriteEndObject();
+                _writer.WriteStartObject();
+                Prop("assemblyName", tuple.Item1);
+                Prop("typeName", tuple.Item2);
+                Prop("genericArguments", Enumerable(tuple.Item3, Type));
+                _writer.WriteEndObject();
             }
         }
 
         private Action Constructor(ConstructorInfo constructor)
         {
-            return () => this.ConstructorInternal(constructor);
+            return () => ConstructorInternal(constructor);
         }
 
         private void ConstructorInternal(ConstructorInfo constructor)
         {
             if (constructor == null) {
-                this._writer.WriteNull();
+                _writer.WriteNull();
             }
             else {
-                this._writer.WriteStartObject();
-                this.Prop("type", this.Type(constructor.DeclaringType));
-                this.Prop("name", constructor.Name);
-                this.Prop("signature", constructor.ToString());
-                this._writer.WriteEndObject();
+                _writer.WriteStartObject();
+                Prop("type", Type(constructor.DeclaringType));
+                Prop("name", constructor.Name);
+                Prop("signature", constructor.ToString());
+                _writer.WriteEndObject();
             }
         }
 
         private Action Method(MethodInfo method)
         {
-            return () => this.MethodInternal(method);
+            return () => MethodInternal(method);
         }
 
         private void MethodInternal(MethodInfo method)
         {
             if (method == null) {
-                this._writer.WriteNull();
+                _writer.WriteNull();
             }
             else {
-                this._writer.WriteStartObject();
+                _writer.WriteStartObject();
                 if (method.IsGenericMethod) {
                     var meth = method.GetGenericMethodDefinition();
                     var generic = method.GetGenericArguments();
 
-                    this.Prop("type", this.Type(meth.DeclaringType));
-                    this.Prop("name", meth.Name);
-                    this.Prop("signature", meth.ToString());
-                    this.Prop("generic", this.Enumerable(generic, this.Type));
+                    Prop("type", Type(meth.DeclaringType));
+                    Prop("name", meth.Name);
+                    Prop("signature", meth.ToString());
+                    Prop("generic", Enumerable(generic, Type));
                 }
                 else {
-                    this.Prop("type", this.Type(method.DeclaringType));
-                    this.Prop("name", method.Name);
-                    this.Prop("signature", method.ToString());
+                    Prop("type", Type(method.DeclaringType));
+                    Prop("name", method.Name);
+                    Prop("signature", method.ToString());
                 }
-                this._writer.WriteEndObject();
+                _writer.WriteEndObject();
             }
         }
 
         private Action Property(PropertyInfo property)
         {
-            return () => this.PropertyInternal(property);
+            return () => PropertyInternal(property);
         }
 
         private void PropertyInternal(PropertyInfo property)
         {
             if (property == null) {
-                this._writer.WriteNull();
+                _writer.WriteNull();
             }
             else {
-                this._writer.WriteStartObject();
-                this.Prop("type", this.Type(property.DeclaringType));
-                this.Prop("name", property.Name);
-                this.Prop("signature", property.ToString());
-                this._writer.WriteEndObject();
+                _writer.WriteStartObject();
+                Prop("type", Type(property.DeclaringType));
+                Prop("name", property.Name);
+                Prop("signature", property.ToString());
+                _writer.WriteEndObject();
             }
         }
 
         private Action Member(MemberInfo member)
         {
-            return () => this.MemberInternal(member);
+            return () => MemberInternal(member);
         }
 
         private void MemberInternal(MemberInfo member)
         {
             if (member == null) {
-                this._writer.WriteNull();
+                _writer.WriteNull();
             }
             else {
-                this._writer.WriteStartObject();
-                this.Prop("type", this.Type(member.DeclaringType));
-                this.Prop("memberType", (int) member.MemberType);
-                this.Prop("name", member.Name);
-                this.Prop("signature", member.ToString());
-                this._writer.WriteEndObject();
+                _writer.WriteStartObject();
+                Prop("type", Type(member.DeclaringType));
+                Prop("memberType", (int) member.MemberType);
+                Prop("name", member.Name);
+                Prop("signature", member.ToString());
+                _writer.WriteEndObject();
             }
         }
     }

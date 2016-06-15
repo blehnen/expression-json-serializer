@@ -8,10 +8,10 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private NewArrayExpression NewArrayExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var elementType = this.Prop(obj, "elementType", this.Type);
-            var expressions = this.Prop(obj, "expressions", this.Enumerable(this.Expression));
+            var elementType = Prop(obj, "elementType", Type);
+            var expressions = Prop(obj, "expressions", Enumerable(Expression));
 
             switch (nodeType) {
                 case ExpressionType.NewArrayInit:

@@ -9,10 +9,10 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as MethodCallExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "methodCall");
-            this.Prop("object", this.Expression(expression.Object));
-            this.Prop("method", this.Method(expression.Method));
-            this.Prop("arguments", this.Enumerable(expression.Arguments, this.Expression));
+            Prop("typeName", "methodCall");
+            Prop("object", Expression(expression.Object));
+            Prop("method", Method(expression.Method));
+            Prop("arguments", Enumerable(expression.Arguments, Expression));
 
             return true;
         }

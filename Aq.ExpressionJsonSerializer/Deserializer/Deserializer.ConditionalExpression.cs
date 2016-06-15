@@ -8,11 +8,11 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private ConditionalExpression ConditionalExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var test = this.Prop(obj, "test", this.Expression);
-            var ifTrue = this.Prop(obj, "ifTrue", this.Expression);
-            var ifFalse = this.Prop(obj, "ifFalse", this.Expression);
+            var test = Prop(obj, "test", Expression);
+            var ifTrue = Prop(obj, "ifTrue", Expression);
+            var ifFalse = Prop(obj, "ifFalse", Expression);
 
             switch (nodeType) {
                 case ExpressionType.Conditional:

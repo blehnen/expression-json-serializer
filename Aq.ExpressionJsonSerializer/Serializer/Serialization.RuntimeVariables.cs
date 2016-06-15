@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace Aq.ExpressionJsonSerializer
 {
@@ -10,8 +9,8 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as RuntimeVariablesExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "runtimeVariables");
-            this.Prop("variables", this.Enumerable(expression.Variables, this.Expression));
+            Prop("typeName", "runtimeVariables");
+            Prop("variables", Enumerable(expression.Variables, Expression));
 
             return true;
         }

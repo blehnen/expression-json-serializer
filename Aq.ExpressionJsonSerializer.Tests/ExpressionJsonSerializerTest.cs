@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
@@ -200,6 +201,24 @@ namespace Aq.ExpressionJsonSerializer.Tests
         public void MethodResultCast()
         {
             TestExpression((Expression<Func<Context, int>>) (c => (int) c.Method3()));
+        }
+
+        [TestMethod]
+        public void LambdaMultiThreaded()
+        {
+            var count = 100;
+            var tasks = new Task[count];
+
+            Parallel.For(0, count,
+                index =>
+                {
+                    var t =
+                        Task.Factory.StartNew(
+                            Lambda);
+                    tasks[index] = t;
+                });
+
+            Task.WaitAll(tasks);
         }
 
         private sealed class Context

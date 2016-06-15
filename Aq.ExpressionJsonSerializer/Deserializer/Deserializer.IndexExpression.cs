@@ -8,11 +8,11 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private IndexExpression IndexExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var expression = this.Prop(obj, "object", this.Expression);
-            var indexer = this.Prop(obj, "indexer", this.Property);
-            var arguments = this.Prop(obj, "arguments", this.Enumerable(this.Expression));
+            var expression = Prop(obj, "object", Expression);
+            var indexer = Prop(obj, "indexer", Property);
+            var arguments = Prop(obj, "arguments", Enumerable(Expression));
 
             switch (nodeType) {
                 case ExpressionType.Index:

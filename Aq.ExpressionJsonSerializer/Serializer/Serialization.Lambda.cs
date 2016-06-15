@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace Aq.ExpressionJsonSerializer
 {
@@ -10,11 +9,11 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as LambdaExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "lambda");
-            this.Prop("name", expression.Name);
-            this.Prop("parameters", this.Enumerable(expression.Parameters, this.Expression));
-            this.Prop("body", this.Expression(expression.Body));
-            this.Prop("tailCall", expression.TailCall);
+            Prop("typeName", "lambda");
+            Prop("name", expression.Name);
+            Prop("parameters", Enumerable(expression.Parameters, Expression));
+            Prop("body", Expression(expression.Body));
+            Prop("tailCall", expression.TailCall);
 
             return true;
         }

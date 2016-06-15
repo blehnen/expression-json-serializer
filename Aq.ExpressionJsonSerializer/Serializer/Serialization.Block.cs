@@ -9,9 +9,9 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as BlockExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "block");
-            this.Prop("expressions", this.Enumerable(expression.Expressions, this.Expression));
-            this.Prop("variables", this.Enumerable(expression.Variables, this.Expression));
+            Prop("typeName", "block");
+            Prop("expressions", Enumerable(expression.Expressions, Expression));
+            Prop("variables", Enumerable(expression.Variables, Expression));
 
             return true;
         }

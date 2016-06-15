@@ -9,12 +9,12 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as BinaryExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "binary");
-            this.Prop("left", this.Expression(expression.Left));
-            this.Prop("right", this.Expression(expression.Right));
-            this.Prop("method", this.Method(expression.Method));
-            this.Prop("conversion", this.Expression(expression.Conversion));
-            this.Prop("liftToNull", expression.IsLiftedToNull);
+            Prop("typeName", "binary");
+            Prop("left", Expression(expression.Left));
+            Prop("right", Expression(expression.Right));
+            Prop("method", Method(expression.Method));
+            Prop("conversion", Expression(expression.Conversion));
+            Prop("liftToNull", expression.IsLiftedToNull);
 
             return true;
         }

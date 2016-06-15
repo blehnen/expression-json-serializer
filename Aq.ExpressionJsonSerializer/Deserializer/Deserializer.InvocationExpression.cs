@@ -8,10 +8,10 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private InvocationExpression InvocationExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var expression = this.Prop(obj, "expression", this.Expression);
-            var arguments = this.Prop(obj, "arguments", this.Enumerable(this.Expression));
+            var expression = Prop(obj, "expression", Expression);
+            var arguments = Prop(obj, "arguments", Enumerable(Expression));
             
             switch (nodeType) {
                 case ExpressionType.Invoke:

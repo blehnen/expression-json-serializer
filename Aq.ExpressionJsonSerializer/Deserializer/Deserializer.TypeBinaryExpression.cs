@@ -8,10 +8,10 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private TypeBinaryExpression TypeBinaryExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var expression = this.Prop(obj, "expression", this.Expression);
-            var typeOperand = this.Prop(obj, "typeOperand", this.Type);
+            var expression = Prop(obj, "expression", Expression);
+            var typeOperand = Prop(obj, "typeOperand", Type);
             
             switch (nodeType) {
                 case ExpressionType.TypeIs:

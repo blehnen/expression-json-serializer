@@ -8,7 +8,7 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private DefaultExpression DefaultExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
             switch (nodeType) {
                 case ExpressionType.Default:

@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Linq.Expressions;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -7,14 +8,14 @@ namespace Aq.ExpressionJsonSerializer
 {
     public class ExpressionJsonConverter : JsonConverter
     {
-        private static readonly System.Type TypeOfExpression = typeof (Expression);
+        private static readonly Type TypeOfExpression = typeof (Expression);
 
         public ExpressionJsonConverter(Assembly resolvingAssembly)
         {
-            this._assembly = resolvingAssembly;
+            _assembly = resolvingAssembly;
         }
 
-        public override bool CanConvert(System.Type objectType)
+        public override bool CanConvert(Type objectType)
         {
             return objectType == TypeOfExpression
                 || objectType.IsSubclassOf(TypeOfExpression);
@@ -27,11 +28,11 @@ namespace Aq.ExpressionJsonSerializer
         }
 
         public override object ReadJson(
-            JsonReader reader, System.Type objectType,
+            JsonReader reader, Type objectType,
             object existingValue, JsonSerializer serializer)
         {
             return Deserializer.Deserialize(
-                this._assembly, JToken.ReadFrom(reader)
+                _assembly, JToken.ReadFrom(reader)
             );
         }
 

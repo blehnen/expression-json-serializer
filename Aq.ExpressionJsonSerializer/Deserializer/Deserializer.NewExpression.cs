@@ -8,11 +8,11 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private NewExpression NewExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var constructor = this.Prop(obj, "constructor", this.Constructor);
-            var arguments = this.Prop(obj, "arguments", this.Enumerable(this.Expression));
-            var members = this.Prop(obj, "members", this.Enumerable(this.Member));
+            var constructor = Prop(obj, "constructor", Constructor);
+            var arguments = Prop(obj, "arguments", Enumerable(Expression));
+            var members = Prop(obj, "members", Enumerable(Member));
 
             switch (nodeType) {
                 case ExpressionType.New:

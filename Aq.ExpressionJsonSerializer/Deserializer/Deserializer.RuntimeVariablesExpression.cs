@@ -8,9 +8,9 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private RuntimeVariablesExpression RuntimeVariablesExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var variables = this.Prop(obj, "variables", this.Enumerable(this.ParameterExpression));
+            var variables = Prop(obj, "variables", Enumerable(ParameterExpression));
 
             switch (nodeType) {
                 case ExpressionType.RuntimeVariables:

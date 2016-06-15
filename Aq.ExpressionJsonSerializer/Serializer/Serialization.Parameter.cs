@@ -15,13 +15,13 @@ namespace Aq.ExpressionJsonSerializer
             if (expression == null) { return false; }
 
             string name;
-            if (!this._parameterExpressions.TryGetValue(expression, out name)) {
-                name = expression.Name ?? "p_" + Guid.NewGuid().ToString("N");
-                this._parameterExpressions[expression] = name;
+            if (!_parameterExpressions.TryGetValue(expression, out name)) {
+                name = expression.Name;
+                _parameterExpressions[expression] = name;
             }
 
-            this.Prop("typeName", "parameter");
-            this.Prop("name", name);
+            Prop("typeName", "parameter");
+            Prop("name", name);
 
             return true;
         }

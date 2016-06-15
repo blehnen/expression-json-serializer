@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace Aq.ExpressionJsonSerializer
 {
@@ -10,9 +9,9 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as NewArrayExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "newArray");
-            this.Prop("elementType", this.Type(expression.Type.GetElementType()));
-            this.Prop("expressions", this.Enumerable(expression.Expressions, this.Expression));
+            Prop("typeName", "newArray");
+            Prop("elementType", Type(expression.Type.GetElementType()));
+            Prop("expressions", Enumerable(expression.Expressions, Expression));
 
             return true;
         }

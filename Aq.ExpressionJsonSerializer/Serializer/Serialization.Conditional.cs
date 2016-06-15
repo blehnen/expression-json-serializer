@@ -9,10 +9,10 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as ConditionalExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "conditional");
-            this.Prop("test", this.Expression(expression.Test));
-            this.Prop("ifTrue", this.Expression(expression.IfTrue));
-            this.Prop("ifFalse", this.Expression(expression.IfFalse));
+            Prop("typeName", "conditional");
+            Prop("test", Expression(expression.Test));
+            Prop("ifTrue", Expression(expression.IfTrue));
+            Prop("ifFalse", Expression(expression.IfFalse));
 
             return true;
         }

@@ -8,10 +8,10 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private MemberExpression MemberExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
-            var expression = this.Prop(obj, "expression", this.Expression);
-            var member = this.Prop(obj, "member", this.Member);
+            var expression = Prop(obj, "expression", Expression);
+            var member = Prop(obj, "member", Member);
 
             switch (nodeType) {
                 case ExpressionType.MemberAccess:

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace Aq.ExpressionJsonSerializer
 {
@@ -10,9 +9,9 @@ namespace Aq.ExpressionJsonSerializer
             var expression = expr as TypeBinaryExpression;
             if (expression == null) { return false; }
 
-            this.Prop("typeName", "typeBinary");
-            this.Prop("expression", this.Expression(expression.Expression));
-            this.Prop("typeOperand", this.Type(expression.TypeOperand));
+            Prop("typeName", "typeBinary");
+            Prop("expression", Expression(expression.Expression));
+            Prop("typeOperand", Type(expression.TypeOperand));
 
             return true;
         }

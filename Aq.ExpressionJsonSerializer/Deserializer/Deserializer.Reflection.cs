@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
@@ -8,11 +8,11 @@ namespace Aq.ExpressionJsonSerializer
 {
     partial class Deserializer
     {
-        private static readonly Dictionary<Assembly, Dictionary<string, Dictionary<string, Type>>>
-            TypeCache = new Dictionary<Assembly, Dictionary<string, Dictionary<string, Type>>>();
+        private static readonly ConcurrentDictionary<Assembly, ConcurrentDictionary<string, ConcurrentDictionary<string, Type>>>
+            TypeCache = new ConcurrentDictionary<Assembly, ConcurrentDictionary<string, ConcurrentDictionary<string, Type>>>();
 
-        private static readonly Dictionary<Type, Dictionary<string, Dictionary<string, ConstructorInfo>>>
-            ConstructorCache = new Dictionary<Type, Dictionary<string, Dictionary<string, ConstructorInfo>>>();
+        private static readonly ConcurrentDictionary<Type, ConcurrentDictionary<string, ConcurrentDictionary<string, ConstructorInfo>>>
+            ConstructorCache = new ConcurrentDictionary<Type, ConcurrentDictionary<string, ConcurrentDictionary<string, ConstructorInfo>>>();
 
         private Type Type(JToken token)
         {
@@ -21,25 +21,25 @@ namespace Aq.ExpressionJsonSerializer
             }
 
             var obj = (JObject) token;
-            var assemblyName = this.Prop(obj, "assemblyName", t => t.Value<string>());
-            var typeName = this.Prop(obj, "typeName", t => t.Value<string>());
-            var generic = this.Prop(obj, "genericArguments", this.Enumerable(this.Type));
+            var assemblyName = Prop(obj, "assemblyName", t => t.Value<string>());
+            var typeName = Prop(obj, "typeName", t => t.Value<string>());
+            var generic = Prop(obj, "genericArguments", Enumerable(Type));
 
-            Dictionary<string, Dictionary<string, Type>> assemblies;
-            if (!TypeCache.TryGetValue(this._assembly, out assemblies)) {
-                assemblies = new Dictionary<string, Dictionary<string, Type>>();
-                TypeCache[this._assembly] = assemblies;
+            ConcurrentDictionary<string, ConcurrentDictionary<string, Type>> assemblies;
+            if (!TypeCache.TryGetValue(_assembly, out assemblies)) {
+                assemblies = new ConcurrentDictionary<string, ConcurrentDictionary<string, Type>>();
+                TypeCache[_assembly] = assemblies;
             }
 
-            Dictionary<string, Type> types;
+            ConcurrentDictionary<string, Type> types;
             if (!assemblies.TryGetValue(assemblyName, out types)) {
-                types = new Dictionary<string, Type>();
+                types = new ConcurrentDictionary<string, Type>();
                 assemblies[assemblyName] = types;
             }
 
             Type type;
             if (!types.TryGetValue(typeName, out type)) {
-                type = this._assembly.GetType(typeName);
+                type = _assembly.GetType(typeName);
                 if (type == null) {
                     var assembly = Assembly.Load(new AssemblyName(assemblyName));
                     type = assembly.GetType(typeName);
@@ -67,42 +67,39 @@ namespace Aq.ExpressionJsonSerializer
             }
 
             var obj = (JObject) token;
-            var type = this.Prop(obj, "type", this.Type);
-            var name = this.Prop(obj, "name").Value<string>();
-            var signature = this.Prop(obj, "signature").Value<string>();
+            var type = Prop(obj, "type", Type);
+            var name = Prop(obj, "name").Value<string>();
+            var signature = Prop(obj, "signature").Value<string>();
 
             ConstructorInfo constructor;
-            Dictionary<string, ConstructorInfo> cache2;
-            Dictionary<string, Dictionary<string, ConstructorInfo>> cache1;
+            ConcurrentDictionary<string, ConstructorInfo> cache2;
+            ConcurrentDictionary<string, ConcurrentDictionary<string, ConstructorInfo>> cache1;
 
             if (!ConstructorCache.TryGetValue(type, out cache1)) {
-                constructor = this.ConstructorInternal(type, name, signature);
-                
-                cache2 = new Dictionary<
-                    string, ConstructorInfo>(1) {
-                        {signature, constructor}
-                    };
+                constructor = ConstructorInternal(type, name, signature);
 
-                cache1 = new Dictionary<
-                    string, Dictionary<
-                        string, ConstructorInfo>>(1) {
-                            {name, cache2}
-                        };
+                cache2 = new ConcurrentDictionary<
+                    string, ConstructorInfo>();
+                cache2.TryAdd(signature, constructor);
+
+                cache1 = new ConcurrentDictionary<
+                    string, ConcurrentDictionary<
+                        string, ConstructorInfo>>();
+                cache1.TryAdd(name, cache2);
                 
                 ConstructorCache[type] = cache1;
             }
             else if (!cache1.TryGetValue(name, out cache2)) {
-                constructor = this.ConstructorInternal(type, name, signature);
-                
-                cache2 = new Dictionary<
-                    string, ConstructorInfo>(1) {
-                        {signature, constructor}
-                    };
+                constructor = ConstructorInternal(type, name, signature);
+
+                cache2 = new ConcurrentDictionary<
+                    string, ConstructorInfo>();
+                cache2.TryAdd(signature, constructor);
 
                 cache1[name] = cache2;
             }
             else if (!cache2.TryGetValue(signature, out constructor)) {
-                constructor = this.ConstructorInternal(type, name, signature);
+                constructor = ConstructorInternal(type, name, signature);
                 cache2[signature] = constructor;
             }
 
@@ -142,10 +139,10 @@ namespace Aq.ExpressionJsonSerializer
             }
 
             var obj = (JObject) token;
-            var type = this.Prop(obj, "type", this.Type);
-            var name = this.Prop(obj, "name").Value<string>();
-            var signature = this.Prop(obj, "signature").Value<string>();
-            var generic = this.Prop(obj, "generic", this.Enumerable(this.Type));
+            var type = Prop(obj, "type", Type);
+            var name = Prop(obj, "name").Value<string>();
+            var signature = Prop(obj, "signature").Value<string>();
+            var generic = Prop(obj, "generic", Enumerable(Type));
 
             var methods = type.GetMethods(
                 BindingFlags.Public | BindingFlags.NonPublic |
@@ -167,9 +164,9 @@ namespace Aq.ExpressionJsonSerializer
             }
 
             var obj = (JObject) token;
-            var type = this.Prop(obj, "type", this.Type);
-            var name = this.Prop(obj, "name").Value<string>();
-            var signature = this.Prop(obj, "signature").Value<string>();
+            var type = Prop(obj, "type", Type);
+            var name = Prop(obj, "name").Value<string>();
+            var signature = Prop(obj, "signature").Value<string>();
 
             var properties = type.GetProperties(
                 BindingFlags.Public | BindingFlags.NonPublic |
@@ -185,10 +182,10 @@ namespace Aq.ExpressionJsonSerializer
             }
 
             var obj = (JObject) token;
-            var type = this.Prop(obj, "type", this.Type);
-            var name = this.Prop(obj, "name").Value<string>();
-            var signature = this.Prop(obj, "signature").Value<string>();
-            var memberType = (MemberTypes) this.Prop(obj, "memberType").Value<int>();
+            var type = Prop(obj, "type", Type);
+            var name = Prop(obj, "name").Value<string>();
+            var signature = Prop(obj, "signature").Value<string>();
+            var memberType = (MemberTypes) Prop(obj, "memberType").Value<int>();
 
             var members = type.GetMembers(
                 BindingFlags.Public | BindingFlags.NonPublic |

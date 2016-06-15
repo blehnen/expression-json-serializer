@@ -8,7 +8,7 @@ namespace Aq.ExpressionJsonSerializer
     partial class Deserializer
     {
         private LabelExpression LabelExpression(
-            ExpressionType nodeType, System.Type type, JObject obj)
+            ExpressionType nodeType, Type type, JObject obj)
         {
             throw new NotImplementedException();
         }
