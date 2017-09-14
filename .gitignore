@@ -157,3 +157,5 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+.vs/Aq.ExpressionJsonSerializer/v15/sqlite3/storage.ide
+Aq.ExpressionJsonSerializer/.vs/Aq.ExpressionJsonSerializer/v15/sqlite3/storage.ide

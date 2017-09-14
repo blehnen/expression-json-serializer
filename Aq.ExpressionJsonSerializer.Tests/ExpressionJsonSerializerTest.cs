@@ -3,207 +3,217 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using Xunit;
 
 namespace Aq.ExpressionJsonSerializer.Tests
 {
-    [TestClass]
     public class ExpressionJsonSerializerTest
     {
-        [TestMethod]
+        [Fact]
         public void Assignment()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.A + c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void BitwiseAnd()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.A & c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void LogicalAnd()
         {
             TestExpression((Expression<Func<Context, bool>>) (c => c.A > 0 && c.B > 0));
         }
 
-        [TestMethod]
+        [Fact]
         public void ArrayIndex()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.Array[0]));
         }
 
-        [TestMethod]
+        [Fact]
         public void ArrayLength()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.Array.Length));
         }
 
-        [TestMethod]
+        [Fact]
         public void Method()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.Method()));
         }
 
-        [TestMethod]
+        [Fact]
         public void MethodWithArguments()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.Method("B")));
         }
 
-        [TestMethod]
+        [Fact]
         public void Coalesce()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.C ?? c.A));
         }
 
-        [TestMethod]
+        [Fact]
         public void Conditional()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.C == null ? c.A : c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void Convert()
         {
             TestExpression((Expression<Func<Context, int>>) (c => (short) (c.C ?? 0)));
         }
 
-        [TestMethod]
+        [Fact]
         public void Decrement()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.A - 1));
         }
 
-        [TestMethod]
+        [Fact]
         public void DivisionWithCast()
         {
             TestExpression((Expression<Func<Context, float>>) (c => (float) c.A / c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void Equality()
         {
             TestExpression((Expression<Func<Context, bool>>) (c => c.A == c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void Xor()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.A ^ c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void LinqExtensions()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.Array.FirstOrDefault()));
         }
 
-        [TestMethod]
+        [Fact]
         public void GreaterThan()
         {
             TestExpression((Expression<Func<Context, bool>>) (c => c.A > c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void Increment()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.A + 1));
         }
 
-        [TestMethod]
+        [Fact]
         public void Indexer()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c["A"]));
         }
 
-        [TestMethod]
+        [Fact]
         public void Invoke()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.Func()));
         }
 
-        [TestMethod]
+        [Fact]
         public void Constant()
         {
             TestExpression((Expression<Func<Context, bool>>) (c => false));
         }
 
-        [TestMethod]
+        [Fact]
         public void Lambda()
         {
             TestExpression((Expression<Func<Context, int>>) (c => ((Func<Context, int>) (_ => _.A))(c)));
         }
 
-        [TestMethod]
+        [Fact]
         public void LeftShift()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.A << c.C ?? 0));
         }
 
-        [TestMethod]
+        [Fact]
         public void PropertyAccess()
         {
             TestExpression((Expression<Func<Context, int>>) (c => c.B));
         }
 
-        [TestMethod]
+        [Fact]
         public void Negation()
         {
             TestExpression((Expression<Func<Context, int>>) (c => -c.A));
         }
 
-        [TestMethod]
+        [Fact]
         public void New()
         {
             TestExpression((Expression<Func<Context, object>>) (c => new object()));    
         }
 
-        [TestMethod]
+        [Fact]
         public void NewWithArguments()
         {
             TestExpression((Expression<Func<Context, object>>) (c => new String('s', 1)));
         }
 
-        [TestMethod]
+        [Fact]
         public void InitArray()
         {
             TestExpression((Expression<Func<Context, int[]>>) (c => new[] { 0 }));
         }
 
-        [TestMethod]
+        [Fact]
         public void InitEmptyArray()
         {
             TestExpression((Expression<Func<Context, int[,]>>) (c => new int[3, 2]));
         }
 
-        [TestMethod]
+
+#if NETFULL
+        [Fact]
+        //JSON.net won't handle objects as part of an expression when in .net standard/core
         public void TypeAs()
         {
             TestExpression((Expression<Func<Context, object>>) (c => c as object));
         }
+#else
+        [Fact]
+        //JSON.net won't handle objects as part of an expression when in .net standard/core
+        public void TypeAs()
+        {
+            Assert.Throws<System.Runtime.Serialization.SerializationException>(() => TestExpression((Expression<Func<Context, object>>) (c => c as object)));
+        }
+#endif
 
-        [TestMethod]
+        [Fact]
         public void TypeOf()
         {
-            TestExpression((Expression<Func<Context, bool>>) (c => typeof (Context) == c.GetType()));
+            TestExpression((Expression<Func<Context, bool>>) (c => c is Context));
         }
 
-        [TestMethod]
+        [Fact]
         public void TypeIs()
         {
             TestExpression((Expression<Func<Context, bool>>) (c => c is object));
         }
 
-        [TestMethod]
+        [Fact]
         public void MethodResultCast()
         {
             TestExpression((Expression<Func<Context, int>>) (c => (int) c.Method3()));
         }
 
-        [TestMethod]
+        [Fact]
         public void LambdaMultiThreaded()
         {
             var count = 100;
@@ -265,7 +275,7 @@ namespace Aq.ExpressionJsonSerializer.Tests
             var json = JsonConvert.SerializeObject(source, settings);
             var target = JsonConvert.DeserializeObject<LambdaExpression>(json, settings);
 
-            Assert.AreEqual(
+            Assert.Equal(
                 ExpressionResult(source, context),
                 ExpressionResult(target, context)
             );
