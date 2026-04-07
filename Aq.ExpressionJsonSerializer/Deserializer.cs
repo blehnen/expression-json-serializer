@@ -15,6 +15,7 @@ namespace Aq.ExpressionJsonSerializer
             return d.Expression(token);
         }
 
+        private readonly Dictionary<string, LabelTarget> _labelTargets = new Dictionary<string, LabelTarget>();
         private readonly Assembly _assembly;
 
         private Deserializer(Assembly assembly)
@@ -27,10 +28,14 @@ namespace Aq.ExpressionJsonSerializer
             return token.ToObject(type);
         }
 
-        private T Prop<T>(JObject obj, string name, Func<JToken, T> result)
+        private T Prop<T>(JObject obj, string name, Func<JToken, T> result = null)
         {
             var prop = obj.Property(name);
-            return result(prop?.Value);
+
+            if (result == null)
+                result = token => token != null ? token.Value<T>() : default(T);
+
+            return result(prop == null ? null : prop.Value);
         }
 
         private JToken Prop(JObject obj, string name)
@@ -93,6 +98,15 @@ namespace Aq.ExpressionJsonSerializer
                 case "unary":               return UnaryExpression(nodeType, type, obj);
             }
             throw new NotSupportedException();
+        }
+
+        private LabelTarget CreateLabelTarget(string name, Type type) {
+            if (_labelTargets.ContainsKey(name))
+                return _labelTargets[name];
+
+            _labelTargets[name] = System.Linq.Expressions.Expression.Label(type, name);
+
+            return _labelTargets[name];
         }
     }
 }
