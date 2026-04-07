@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (${{ matrix.tfm }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            tfm: net10.0
+          - os: ubuntu-latest
+            tfm: net8.0
+          - os: windows-latest
+            tfm: net48
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.100
+
+      - name: Restore
+        run: dotnet restore Aq.ExpressionJsonSerializer.sln
+
+      - name: Build
+        run: dotnet build Aq.ExpressionJsonSerializer.sln -c Debug --no-restore
+
+      - name: Test
+        run: dotnet test "Aq.ExpressionJsonSerializer.Tests/Aq.ExpressionJsonSerializer.Tests.csproj" -f ${{ matrix.tfm }} --no-build -c Debug
+
+  publish:
+    name: Publish to NuGet
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.100
+
+      - name: Restore
+        run: dotnet restore Aq.ExpressionJsonSerializer.sln
+
+      - name: Pack
+        run: dotnet pack Aq.ExpressionJsonSerializer/Aq.ExpressionJsonSerializer.csproj -c Release --no-restore
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push "Aq.ExpressionJsonSerializer/bin/Release/*.nupkg" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          dotnet nuget push "Aq.ExpressionJsonSerializer/bin/Release/*.snupkg" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
