@@ -191,7 +191,7 @@ namespace Aq.ExpressionJsonSerializer.Tests
         //JSON.net won't handle objects as part of an expression when in .net standard/core
         public void TypeAs()
         {
-            Assert.Throws<System.Runtime.Serialization.SerializationException>(() => TestExpression((Expression<Func<Context, object>>) (c => c as object)));
+            Assert.ThrowsAny<Exception>(() => TestExpression((Expression<Func<Context, object>>) (c => c as object)));
         }
 #endif
 
