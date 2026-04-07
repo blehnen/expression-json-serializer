@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -15,7 +16,7 @@ namespace Aq.ExpressionJsonSerializer
             return d.Expression(token);
         }
 
-        private readonly Dictionary<string, LabelTarget> _labelTargets = new Dictionary<string, LabelTarget>();
+        private readonly ConcurrentDictionary<string, LabelTarget> _labelTargets = new ConcurrentDictionary<string, LabelTarget>();
         private readonly Assembly _assembly;
 
         private Deserializer(Assembly assembly)
