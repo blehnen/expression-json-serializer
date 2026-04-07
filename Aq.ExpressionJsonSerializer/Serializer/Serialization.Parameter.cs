@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -6,8 +7,8 @@ namespace Aq.ExpressionJsonSerializer
 {
     partial class Serializer
     {
-        private readonly Dictionary<ParameterExpression, string>
-            _parameterExpressions = new Dictionary<ParameterExpression, string>();
+        private readonly ConcurrentDictionary<ParameterExpression, string>
+            _parameterExpressions = new ConcurrentDictionary<ParameterExpression, string>();
 
         private bool ParameterExpression(Expression expr)
         {

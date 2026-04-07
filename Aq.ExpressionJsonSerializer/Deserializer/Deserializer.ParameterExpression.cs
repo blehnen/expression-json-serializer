@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Newtonsoft.Json.Linq;
@@ -8,8 +9,8 @@ namespace Aq.ExpressionJsonSerializer
 {
     partial class Deserializer
     {
-        private readonly Dictionary<string, ParameterExpression>
-            _parameterExpressions = new Dictionary<string, ParameterExpression>();
+        private readonly ConcurrentDictionary<string, ParameterExpression>
+            _parameterExpressions = new ConcurrentDictionary<string, ParameterExpression>();
 
         private ParameterExpression ParameterExpression(
             ExpressionType nodeType, Type type, JObject obj)
