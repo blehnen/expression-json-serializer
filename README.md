@@ -33,6 +33,7 @@ var restored = JsonConvert.DeserializeObject<Expression<Func<MyMessage, bool>>>(
 
 - Added net10.0, net8.0, net48, and netstandard2.0 multi-targeting
 - Merged loop and goto expression support
+- Thread-safe: all internal dictionaries use `ConcurrentDictionary`
 - Added NuGet packaging and GitHub Actions CI/publish pipeline
 
 ## Publishing a release
