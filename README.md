@@ -16,7 +16,7 @@ Fork of [aquilae/expression-json-serializer](https://github.com/aquilae/expressi
 
 ## Install
 
-```
+```bash
 dotnet add package DotNetWorkQueue.Aq.ExpressionJsonSerializer
 ```
 
@@ -56,7 +56,7 @@ var restored = JsonConvert.DeserializeObject<Expression<Func<MyMessage, bool>>>(
 
 To reproduce the Sonar coverage run locally:
 
-```
+```bash
 dotnet build Aq.ExpressionJsonSerializer.sln -c Debug
 dotnet test Aq.ExpressionJsonSerializer.Tests/Aq.ExpressionJsonSerializer.Tests.csproj \
   -f net10.0 -c Debug --no-build \

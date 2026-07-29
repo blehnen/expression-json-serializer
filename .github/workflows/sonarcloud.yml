@@ -21,6 +21,12 @@ jobs:
   build:
     name: Build and analyze
     runs-on: windows-latest
+    # SONAR_TOKEN is not exposed to fork PRs or Dependabot PRs, so the scanner
+    # would fail on auth rather than skip. Only analyze when the token exists.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]')
 
     steps:
       - name: Set up JDK 17
