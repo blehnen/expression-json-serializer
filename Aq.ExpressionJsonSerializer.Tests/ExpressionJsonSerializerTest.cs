@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Aq.ExpressionJsonSerializer.Tests
 {
-    public class ExpressionJsonSerializerTest
+    public partial class ExpressionJsonSerializerTest
     {
         [Fact]
         public void Assignment()
