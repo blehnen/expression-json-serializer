@@ -65,9 +65,29 @@ dotnet test Aq.ExpressionJsonSerializer.Tests/Aq.ExpressionJsonSerializer.Tests.
 
 ## Publishing a release
 
-1. Ensure the `NUGET_API_KEY` secret is set in the GitHub repository settings.
-2. Push a version tag: `git tag v1.0.0 && git push origin v1.0.0`
-3. GitHub Actions runs build and tests across all targets, then packs and pushes to nuget.org automatically.
+Publishing uses [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing)
+over GitHub OIDC — there is no long-lived API key. The publish job exchanges a short-lived
+OIDC token for a NuGet key valid for one hour, immediately before pushing.
+
+1. Push a version tag: `git tag v1.0.0 && git push origin v1.0.0`
+2. GitHub Actions runs build and tests across all targets, then packs and pushes to nuget.org automatically.
+
+### Trusted publishing setup
+
+A one-time policy on nuget.org (your username → **Trusted Publishing**) backs this:
+
+| Field | Value |
+|-------|-------|
+| Policy owner | `blehnen` |
+| Repository Owner | `blehnen` |
+| Repository | `expression-json-serializer` |
+| Workflow File | `ci.yml` (filename only, no path) |
+| Environment | *(blank — the publish job declares no GitHub environment)* |
+
+To confirm the policy resolves without cutting a release, run the **CI** workflow manually
+from the Actions tab. That triggers the `verify-trusted-publishing` job, which performs the
+OIDC exchange and stops — it never pushes a package. Do this after any change to the policy
+or to the workflow filename, since the policy is bound to `ci.yml` by name.
 
 ## License
 

@@ -6,14 +6,18 @@ on:
     tags: [ 'v*' ]
   pull_request:
     branches: [ master, main ]
+  # Manual trigger for verify-trusted-publishing, so the nuget.org policy can be
+  # proven without cutting a release. See that job for why it lives in this file.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-
+# Permissions are declared per job rather than at workflow level, so each job states
+# exactly what it needs (githubactions:S8264). Every job must set them -- with no
+# workflow-level block, an unset job falls back to the repository default, which may
+# be broader than contents: read.
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   DOTNET_NOLOGO: true
@@ -22,6 +26,8 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.tfm }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -52,11 +58,45 @@ jobs:
       - name: Test
         run: dotnet test "Aq.ExpressionJsonSerializer.Tests/Aq.ExpressionJsonSerializer.Tests.csproj" -f ${{ matrix.tfm }} --no-build -c Debug
 
+  # Proves the nuget.org Trusted Publishing policy resolves, without publishing
+  # anything. Run it from the Actions tab (Run workflow) after changing the policy.
+  #
+  # This job MUST stay in ci.yml: the OIDC token carries the workflow file it was
+  # issued from, and the policy is registered against ci.yml. Moving it to its own
+  # workflow would make the exchange fail for a reason unrelated to the policy.
+  verify-trusted-publishing:
+    name: Verify trusted publishing (no push)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      id-token: write        # required for the OIDC token exchange
+
+    steps:
+      - name: NuGet login (OIDC -> short-lived API key)
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        id: login
+        with:
+          user: blehnen      # nuget.org profile name, not the account email
+
+      - name: Confirm a key was issued
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::OIDC exchange returned an empty key - check the policy's owner/repo/workflow fields"
+            exit 1
+          fi
+          echo "Trusted publishing policy resolves; short-lived key issued (not printed)."
+
   publish:
     name: Publish to NuGet
     needs: build-and-test
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      id-token: write        # required for the OIDC token exchange
 
     steps:
       - name: Checkout
@@ -77,9 +117,19 @@ jobs:
       - name: Pack
         run: dotnet pack Aq.ExpressionJsonSerializer/Aq.ExpressionJsonSerializer.csproj -c Release --no-restore
 
+      # Exchanged immediately before the push: the key is only valid for 1 hour, and
+      # each OIDC token buys exactly one key. Kept out of the run block via env: so
+      # the secret is not expanded onto the command line (githubactions:S7636) --
+      # the upstream NuGet docs example interpolates it directly, which trips that rule.
+      - name: NuGet login (OIDC -> short-lived API key)
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        id: login
+        with:
+          user: blehnen      # nuget.org profile name, not the account email
+
       - name: Push to NuGet
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: |
           dotnet nuget push "Aq.ExpressionJsonSerializer/bin/Release/*.nupkg" \
             --api-key "$NUGET_API_KEY" \
