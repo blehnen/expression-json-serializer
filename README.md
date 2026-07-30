@@ -49,13 +49,16 @@ var restored = JsonConvert.DeserializeObject<Expression<Func<MyMessage, bool>>>(
 
 ## Known limitations
 
-`LabelExpression`, `SwitchExpression`, `TryExpression`, `DebugInfoExpression` and
-`DynamicExpression` are not implemented and throw `NotImplementedException`.
+`DebugInfoExpression` and `DynamicExpression` are not implemented and throw
+`NotImplementedException`. `DebugInfo` needs a `SymbolDocumentInfo` and `Dynamic` needs a
+`CallSiteBinder`, neither of which is meaningfully serializable.
 
-The practical consequence is that the loop/goto support is partial: `Expression.Loop` with
-break and continue labels round-trips, but a bare `Expression.Label` node does not, so
-goto/label blocks cannot be serialized. Tracked in
-[#6](https://github.com/blehnen/expression-json-serializer/issues/6).
+`ListInit` and `MemberInit` expressions do not round-trip on **.NET Framework 4.8**; they
+work on .NET 8 and .NET 10. Tracked in
+[#8](https://github.com/blehnen/expression-json-serializer/issues/8).
+
+Everything else round-trips, including full statement-expression support: blocks, loops
+with break and continue, goto/label, switch, and try with catch, filter, fault and finally.
 
 ## Build and CI
 

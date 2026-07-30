@@ -10,7 +10,16 @@ namespace Aq.ExpressionJsonSerializer
         private LabelExpression LabelExpression(
             ExpressionType nodeType, Type type, JObject obj)
         {
-            throw new NotImplementedException();
+            var defaultValue = this.Expression(this.Prop(obj, "defaultValue"));
+            var targetType = this.Type(this.Prop(obj, "targetType"));
+            var targetName = this.Prop(obj, "targetName").Value<string>();
+
+            switch (nodeType) {
+                case ExpressionType.Label:
+                    return Expr.Label(CreateLabelTarget(targetName, targetType), defaultValue);
+                default:
+                    throw new NotSupportedException();
+            }
         }
     }
 }

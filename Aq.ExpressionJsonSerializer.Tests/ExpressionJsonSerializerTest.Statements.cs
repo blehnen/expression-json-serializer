@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using Newtonsoft.Json;
 using Xunit;
 using Expr = System.Linq.Expressions.Expression;
 
@@ -26,6 +27,34 @@ namespace Aq.ExpressionJsonSerializer.Tests
         private static void TestBody(ParameterExpression ctx, Expression body)
         {
             TestExpression(Expr.Lambda(body, ctx));
+        }
+
+        /// <summary>
+        /// Round-trip fidelity check that never calls Compile(): serialize, deserialize,
+        /// serialize again, and require the two payloads to match.
+        ///
+        /// Needed because .NET Framework's DynamicMethod cannot emit fault blocks or
+        /// exception filters -- DynamicILGenerator.BeginFaultBlock and
+        /// BeginExceptFilterBlock throw "The requested operation is invalid for
+        /// DynamicMethod". That is a runtime limit on executing those constructs at all,
+        /// not a serializer limit, and it would fire on the source expression before any
+        /// serialization happened. Comparing payloads still proves this library preserved
+        /// the tree.
+        /// </summary>
+        private static void TestBodyWithoutCompiling(ParameterExpression ctx, Expression body)
+        {
+            var source = Expr.Lambda(body, ctx);
+
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(new ExpressionJsonConverter(
+                Assembly.GetAssembly(typeof(ExpressionJsonSerializerTest))));
+
+            var first = JsonConvert.SerializeObject(source, settings);
+            var target = JsonConvert.DeserializeObject<LambdaExpression>(first, settings);
+
+            Assert.NotNull(target);
+            Assert.Equal(source.Body.NodeType, target.Body.NodeType);
+            Assert.Equal(first, JsonConvert.SerializeObject(target, settings));
         }
 
         // ---- Block -------------------------------------------------------------------
@@ -101,85 +130,215 @@ namespace Aq.ExpressionJsonSerializer.Tests
                     continueLabel)));
         }
 
-        // ---- Unimplemented nodes -----------------------------------------------------
+        // ---- Label (goto landing sites) ----------------------------------------------
         //
-        // LabelExpression, SwitchExpression and TryExpression are stubs that throw
-        // NotImplementedException on BOTH the serializer and deserializer side (as are
-        // DebugInfoExpression and DynamicExpression, which cannot be constructed here
-        // without a call site or debug info provider).
-        //
-        // These tests pin the current behaviour so the limitation is visible and a future
-        // implementation has a failing test to flip. They are not an endorsement of the
-        // gap. Note the practical consequence: Expr.Loop with break/continue works, but a
-        // bare Expr.Label node does not, so goto/label blocks cannot round-trip.
-        //
-        // ListInit and MemberInit have stubs too, but those are dead code -- CanReduce is
-        // true for both, so ExpressionInternal reduces them to blocks before dispatch.
-        // The ListInit and MemberInit tests above exercise them through that path.
+        // These were pinned as NotImplemented until Label/Switch/Try were implemented.
+        // DebugInfoExpression and DynamicExpression remain unimplemented and are not
+        // covered here -- neither can be constructed without a debug info provider or a
+        // CallSiteBinder respectively.
 
         [Fact]
-        public void LabelNodeIsNotImplemented()
+        public void GotoJumpOverStatement()
         {
             var c = Ctx();
             var v = Expr.Variable(typeof(int), "v");
             var target = Expr.Label("skip");
 
-            Assert.Throws<NotImplementedException>(() => TestBody(c, Expr.Block(
+            TestBody(c, Expr.Block(
                 new[] { v },
                 Expr.Assign(v, Expr.Constant(1)),
                 Expr.Goto(target),
-                Expr.Assign(v, Expr.Constant(2)),   // would be jumped over
+                Expr.Assign(v, Expr.Constant(2)),   // jumped over
                 Expr.Label(target),
-                v)));
+                v));
         }
 
         [Fact]
-        public void LabelWithDefaultValueIsNotImplemented()
+        public void LabelWithDefaultValue()
         {
             var c = Ctx();
             var target = Expr.Label(typeof(int), "result");
 
-            Assert.Throws<NotImplementedException>(() => TestBody(c, Expr.Block(
+            TestBody(c, Expr.Block(
                 Expr.Goto(target, Expr.Field(c, "A")),
-                Expr.Label(target, Expr.Constant(-1)))));
+                Expr.Label(target, Expr.Constant(-1))));
         }
 
         [Fact]
-        public void SwitchIsNotImplemented()
+        public void LabelDefaultValueIsUsedWhenNotJumpedTo()
+        {
+            var c = Ctx();
+            var target = Expr.Label(typeof(int), "result");
+
+            // Falls through to the label without a goto, so the default value is the
+            // result. Distinguishes a serialized default from a dropped one.
+            TestBody(c, Expr.Block(Expr.Label(target, Expr.Constant(-1))));
+        }
+
+        [Fact]
+        public void ReturnGotoKind()
+        {
+            var c = Ctx();
+            var target = Expr.Label(typeof(int), "return");
+
+            TestBody(c, Expr.Block(
+                Expr.Return(target, Expr.Field(c, "A")),
+                Expr.Label(target, Expr.Constant(0))));
+        }
+
+        // ---- Switch --------------------------------------------------------------------
+
+        [Fact]
+        public void Switch()
         {
             var c = Ctx();
 
-            Assert.Throws<NotImplementedException>(() => TestBody(c, Expr.Switch(
+            TestBody(c, Expr.Switch(
                 Expr.Constant(2),
                 Expr.Constant(-1),
                 Expr.SwitchCase(Expr.Constant(10), Expr.Constant(1)),
-                Expr.SwitchCase(Expr.Constant(20), Expr.Constant(2)))));
+                Expr.SwitchCase(Expr.Constant(20), Expr.Constant(2))));
         }
 
         [Fact]
-        public void TryCatchIsNotImplemented()
+        public void SwitchTakesDefaultBranch()
         {
             var c = Ctx();
 
-            Assert.Throws<NotImplementedException>(() => TestBody(c, Expr.TryCatch(
-                Expr.Block(
-                    Expr.Throw(Expr.New(typeof(InvalidOperationException))),
-                    Expr.Constant(1)),
-                Expr.Catch(typeof(InvalidOperationException), Expr.Constant(42)))));
+            TestBody(c, Expr.Switch(
+                Expr.Constant(99),
+                Expr.Field(c, "A"),
+                Expr.SwitchCase(Expr.Constant(10), Expr.Constant(1))));
         }
 
         [Fact]
-        public void TryFinallyIsNotImplemented()
+        public void SwitchCaseWithMultipleTestValues()
+        {
+            var c = Ctx();
+
+            TestBody(c, Expr.Switch(
+                Expr.Constant(3),
+                Expr.Constant(-1),
+                Expr.SwitchCase(Expr.Constant(10), Expr.Constant(1), Expr.Constant(2), Expr.Constant(3))));
+        }
+
+        [Fact]
+        public void SwitchOnStringUsesComparisonMethod()
+        {
+            var c = Ctx();
+            // A string switch carries a Comparison MethodInfo, which the default int
+            // switches leave null.
+            TestBody(c, Expr.Switch(
+                Expr.Constant("b"),
+                Expr.Constant(-1),
+                Expr.SwitchCase(Expr.Constant(1), Expr.Constant("a")),
+                Expr.SwitchCase(Expr.Constant(2), Expr.Constant("b"))));
+        }
+
+        // ---- Try -----------------------------------------------------------------------
+
+        [Fact]
+        public void TryCatch()
+        {
+            var c = Ctx();
+
+            TestBody(c, Expr.TryCatch(
+                Expr.Block(
+                    Expr.Throw(Expr.New(typeof(InvalidOperationException))),
+                    Expr.Constant(1)),
+                Expr.Catch(typeof(InvalidOperationException), Expr.Constant(42))));
+        }
+
+        [Fact]
+        public void TryCatchNotTaken()
+        {
+            var c = Ctx();
+
+            TestBody(c, Expr.TryCatch(
+                Expr.Field(c, "A"),
+                Expr.Catch(typeof(InvalidOperationException), Expr.Constant(42))));
+        }
+
+        [Fact]
+        public void TryCatchWithExceptionVariable()
+        {
+            var c = Ctx();
+            var ex = Expr.Parameter(typeof(InvalidOperationException), "ex");
+
+            TestBody(c, Expr.TryCatch(
+                Expr.Block(
+                    Expr.Throw(Expr.New(typeof(InvalidOperationException))),
+                    Expr.Constant(1)),
+                Expr.Catch(ex, Expr.Property(Expr.Property(ex, "Message"), "Length"))));
+        }
+
+        [Fact]
+        public void TryCatchWithFilter()
+        {
+            var c = Ctx();
+            var ex = Expr.Parameter(typeof(InvalidOperationException), "ex");
+
+            var body = Expr.TryCatch(
+                Expr.Block(
+                    Expr.Throw(Expr.New(typeof(InvalidOperationException))),
+                    Expr.Constant(1)),
+                Expr.Catch(ex, Expr.Constant(7), Expr.Constant(true)));
+
+#if NETFULL
+            // net48 cannot compile an exception filter into a DynamicMethod; the payload
+            // still round-trips. See TestBodyWithoutCompiling.
+            TestBodyWithoutCompiling(c, body);
+#else
+            TestBody(c, body);
+#endif
+        }
+
+        [Fact]
+        public void TryFinally()
         {
             var c = Ctx();
             var v = Expr.Variable(typeof(int), "v");
 
-            Assert.Throws<NotImplementedException>(() => TestBody(c, Expr.Block(
+            TestBody(c, Expr.Block(
                 new[] { v },
                 Expr.TryFinally(
                     Expr.Assign(v, Expr.Constant(1)),
                     Expr.Assign(v, Expr.Constant(2))),
-                v)));
+                v));
+        }
+
+        [Fact]
+        public void TryFault()
+        {
+            var c = Ctx();
+
+            // Fault is mutually exclusive with catch/finally in MakeTry, so it needs its
+            // own tree rather than being folded into one of the above.
+            var body = Expr.TryFault(
+                Expr.Field(c, "A"),
+                Expr.Constant(0));
+
+#if NETFULL
+            // net48 cannot compile a fault block into a DynamicMethod; the payload still
+            // round-trips. See TestBodyWithoutCompiling.
+            TestBodyWithoutCompiling(c, body);
+#else
+            TestBody(c, body);
+#endif
+        }
+
+        [Fact]
+        public void TryCatchMultipleHandlers()
+        {
+            var c = Ctx();
+
+            TestBody(c, Expr.TryCatch(
+                Expr.Block(
+                    Expr.Throw(Expr.New(typeof(InvalidOperationException))),
+                    Expr.Constant(1)),
+                Expr.Catch(typeof(ArgumentException), Expr.Constant(11)),
+                Expr.Catch(typeof(InvalidOperationException), Expr.Constant(22)),
+                Expr.Catch(typeof(Exception), Expr.Constant(33))));
         }
 
         // ---- Default / index / runtime variables -------------------------------------
