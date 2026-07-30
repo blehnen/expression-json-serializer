@@ -1,12 +1,31 @@
 # SonarCloud rule exclusions
 
-Analysis runs from [`.github/workflows/sonarcloud.yml`](../.github/workflows/sonarcloud.yml).
-The `sonar.issue.ignore.multicriteria` entries there are recorded decisions that a rule
-is wrong for this codebase, not a backlog. Findings that were genuinely fixable were
-fixed rather than excluded.
+These are recorded decisions that a rule is wrong for this codebase, not a backlog.
+Findings that were genuinely fixable were fixed rather than excluded.
 
-Kept in the workflow rather than marked "Accepted" through the SonarCloud API so the
-reasoning lives in version control and survives the project being recreated.
+Kept in version control rather than marked "Accepted" through the SonarCloud API, so the
+reasoning survives the Sonar project being recreated.
+
+## Two mechanisms, and why
+
+Suppressions live in **two** places depending on which engine raises the rule:
+
+| Engine | Example | Suppressed in |
+|--------|---------|---------------|
+| Sonar's own C# analyser | `csharpsquid:S1172` | [`.github/workflows/sonarcloud.yml`](../.github/workflows/sonarcloud.yml) via `sonar.issue.ignore.multicriteria` |
+| Roslyn / .NET SDK analysers | `external_roslyn:CA1822` | [`.editorconfig`](../.editorconfig) via `dotnet_diagnostic.<id>.severity = none` |
+
+This split is not cosmetic. **`sonar.issue.ignore.multicriteria` does not filter imported
+external analyser issues** — SonarCloud ingests those from the build output *after* its own
+exclusion filters have run, so `multicriteria` entries naming an `external_roslyn:*` rule
+are silently ignored. They look correct in the workflow and do nothing.
+
+That mistake was live from the first exclusions commit until it was noticed on master:
+`csharpsquid:S1172`, `S3011` and `S2325` were being excluded correctly while
+`external_roslyn:CA1822`, `CA1861` and `CA1859` were not, leaving 16 findings open.
+
+Suppressing an external rule in `.editorconfig` means the analyser never emits it, so
+there is nothing for Sonar to import — and the compiler stops reporting it too.
 
 ## e1 — `csharpsquid:S1172` "Remove this unused method parameter" (15 issues)
 
@@ -41,9 +60,11 @@ Note the trust boundary this implies: deserializing an expression tree is equiva
 deserializing code, so payloads must come from a trusted source. That is inherent to the
 library, not to these four call sites.
 
-## e3–e8 — `csharpsquid:S2325` / `external_roslyn:CA1822` "can be marked static" (35 issues)
+## e3–e5 (`sonarcloud.yml`) + `CA1822` (`.editorconfig`) — "can be marked static"
 
-Scope, per rule (`resourceKey` accepts one pattern, so each path needs its own criterion):
+S2325 is excluded per path in the workflow (`resourceKey` accepts one pattern, so each
+path needs its own criterion). CA1822 says the same thing and is suppressed project-wide
+in `.editorconfig`, since it only fires in these files anyway:
 
 | Path | `S2325` | `CA1822` |
 |------|--------:|---------:|
@@ -63,9 +84,9 @@ of a handler family, so both keep full signal — a future "can be marked static
 worth seeing rather than masking. An earlier revision of this file used a single
 `**/Aq.ExpressionJsonSerializer/**` pattern per rule, which covered them for no reason.
 
-## e9 — `external_roslyn:CA1861` "prefer static readonly over constant array" (1 issue)
+## `CA1861` (`.editorconfig`) — "prefer static readonly over constant array"
 
-Scope: `**/ExpressionJsonSerializerTest.cs`
+Scope: the test project (`Aq.ExpressionJsonSerializer.Tests/**.cs`).
 
 The flagged literal is inside the expression under test:
 
@@ -76,9 +97,9 @@ TestExpression((Expression<Func<Context, int[]>>) (c => new[] { 0 }));
 The point of `InitArray` is to serialize a `NewArrayInit` node. Hoisting the array to a
 field replaces that node with a field access and the test stops testing anything.
 
-## e10 — `external_roslyn:CA1859` "narrow return type for performance" (1 issue)
+## `CA1859` (`.editorconfig`) — "narrow return type for performance"
 
-Scope: `**/ExpressionJsonSerializerTest.cs`
+Scope: the test project (`Aq.ExpressionJsonSerializer.Tests/**.cs`).
 
 `Context.Method3()` returns `object` deliberately so `MethodResultCast` can exercise an
 unbox/convert node:
