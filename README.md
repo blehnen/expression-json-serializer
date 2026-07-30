@@ -60,12 +60,9 @@ throw `NotSupportedException` with an explanation. These are not gaps waiting to
   general way to write one out and rebuild an equivalent binder in another process.
   Resolve the dynamic call to a concrete `MethodCallExpression` before serializing.
 
-`ListInit` and `MemberInit` expressions do not round-trip on **.NET Framework 4.8**; they
-work on .NET 8 and .NET 10. Tracked in
-[#8](https://github.com/blehnen/expression-json-serializer/issues/8).
-
-Everything else round-trips, including full statement-expression support: blocks, loops
-with break and continue, goto/label, switch, and try with catch, filter, fault and finally.
+Everything else round-trips on every target, including full statement-expression support:
+blocks, loops with break and continue, goto/label, switch, try with catch/filter/fault/
+finally, collection and object initialisers, and indexers.
 
 ## Build and CI
 
