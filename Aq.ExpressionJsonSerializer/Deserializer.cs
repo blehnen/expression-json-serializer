@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -16,7 +15,11 @@ namespace Aq.ExpressionJsonSerializer
             return d.Expression(token);
         }
 
-        private readonly ConcurrentDictionary<string, LabelTarget> _labelTargets = new ConcurrentDictionary<string, LabelTarget>();
+        // Per-call state. A Deserializer is constructed by Deserialize and never escapes
+        // to another thread, so a plain Dictionary is sufficient and avoids the lock array
+        // ConcurrentDictionary allocates from Environment.ProcessorCount on every call.
+        // The shared reflection caches in Deserializer.Reflection stay concurrent.
+        private readonly Dictionary<string, LabelTarget> _labelTargets = new Dictionary<string, LabelTarget>();
         private readonly Assembly _assembly;
 
         private Deserializer(Assembly assembly)
@@ -103,11 +106,16 @@ namespace Aq.ExpressionJsonSerializer
 
         private LabelTarget CreateLabelTarget(string name, Type type)
         {
-            // GetOrAdd rather than ContainsKey-then-index: the latter is two separate
-            // operations on a ConcurrentDictionary, so a concurrent writer could slip
-            // between them and hand back two different LabelTargets for one name.
-            return _labelTargets.GetOrAdd(
-                name, n => System.Linq.Expressions.Expression.Label(type, n));
+            // A Deserializer instance belongs to one Deserialize call and is never shared,
+            // so this map does not need to be concurrent. It still must return the same
+            // LabelTarget for a given name, or a goto and the label it lands on come back
+            // as different targets.
+            LabelTarget target;
+            if (!_labelTargets.TryGetValue(name, out target)) {
+                target = System.Linq.Expressions.Expression.Label(type, name);
+                _labelTargets[name] = target;
+            }
+            return target;
         }
     }
 }

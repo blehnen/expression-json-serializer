@@ -9,8 +9,9 @@ namespace Aq.ExpressionJsonSerializer
 {
     partial class Deserializer
     {
-        private readonly ConcurrentDictionary<string, ParameterExpression>
-            _parameterExpressions = new ConcurrentDictionary<string, ParameterExpression>();
+        // Per-call state; see the note on Deserializer._labelTargets.
+        private readonly Dictionary<string, ParameterExpression>
+            _parameterExpressions = new Dictionary<string, ParameterExpression>();
 
         private ParameterExpression ParameterExpression(
             ExpressionType nodeType, Type type, JObject obj)
