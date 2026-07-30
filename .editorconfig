@@ -1,0 +1,39 @@
+root = true
+
+# Roslyn analyser rule configuration.
+#
+# These rules are suppressed here rather than in sonarcloud.yml because
+# sonar.issue.ignore.multicriteria does NOT apply to imported external analyser
+# issues -- SonarCloud ingests them from the build output after its own filters have
+# run. Suppressing at the analyser means they are never emitted, so there is nothing
+# for Sonar to import, and the compiler stops warning about them too.
+#
+# Sonar's own rules (csharpsquid:*) are still excluded in sonarcloud.yml, where the
+# multicriteria filter does work. The reasoning for every suppression, on both sides,
+# lives in docs/sonar-exclusions.md.
+
+[*.cs]
+
+# CA1822: "member does not access instance data and can be marked as static".
+# The Serializer/Deserializer partials are families of small handlers with uniform
+# signatures spread one-per-file. Some touch _writer / _serializer, some do not.
+# Making the subset that does not static would split a deliberately uniform family
+# into two kinds of method for no functional benefit, and would widen the diff
+# against upstream aquilae/expression-json-serializer across most files.
+# Paired with csharpsquid:S2325 (e3-e5 in sonarcloud.yml), which says the same thing.
+dotnet_diagnostic.CA1822.severity = none
+
+[Aq.ExpressionJsonSerializer.Tests/**.cs]
+
+# CA1861: "prefer static readonly fields over constant array arguments".
+# The flagged literal is the expression under test -- InitArray serialises the
+# NewArrayInit node produced by `c => new[] { 0 }`. Hoisting the array to a field
+# replaces that node with a field access and the test stops testing anything.
+dotnet_diagnostic.CA1861.severity = none
+
+# CA1859: "change return type for improved performance".
+# Context.Method3() returns object deliberately so MethodResultCast can exercise an
+# unbox/convert node. Note this is scoped to the test project only: where narrowing a
+# return type was genuinely correct, in the ListInitBody/MemberInitBody helpers, it
+# was fixed in 4a6f657 rather than suppressed.
+dotnet_diagnostic.CA1859.severity = none

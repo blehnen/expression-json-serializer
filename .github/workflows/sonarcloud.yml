@@ -85,23 +85,24 @@ jobs:
           #              would make the dispatch heterogeneous, which is strictly worse.
           #   e2  S3011  "accessibility bypass" -- reflecting over non-public members is
           #              precisely what deserializing an expression tree requires.
-          #   e3-e5   S2325  "make static" \_ the Serializer/Deserializer handler families
-          #   e6-e8   CA1822 "make static" /  are deliberately uniform instance methods.
-          #              Scoped to the three paths that actually hold these findings --
-          #              Deserializer.cs, Deserializer/, Serializer/ -- so that
-          #              ExpressionJsonConverter.cs (the public entry point) and the root
-          #              Serializer.cs keep full signal. resourceKey takes one pattern, so
-          #              each path needs its own criterion.
-          #   e9  CA1861 "hoist constant array" -- the array literal is inside the
-          #              expression tree under test; hoisting it defeats the test.
-          #   e10 CA1859 "narrow return type" -- Method3 returns object on purpose so the
-          #              MethodResultCast test can exercise an unbox/convert node.
+          #   e3-e5   S2325  "make static" -- the Serializer/Deserializer handler families
+          #              are deliberately uniform instance methods. Scoped to the three
+          #              paths that actually hold these findings -- Deserializer.cs,
+          #              Deserializer/, Serializer/ -- so that ExpressionJsonConverter.cs
+          #              (the public entry point) and the root Serializer.cs keep full
+          #              signal. resourceKey takes one pattern, so each path needs its own
+          #              criterion.
+          #
+          # Only csharpsquid rules are listed here. multicriteria does NOT filter imported
+          # external analyser issues (external_roslyn:*) -- SonarCloud ingests those from
+          # the build output after its own filters run, so entries for them were silently
+          # doing nothing. CA1822/CA1861/CA1859 are suppressed in .editorconfig instead.
           ${{ runner.temp }}\scanner\dotnet-sonarscanner begin `
             /k:"blehnen_expression-json-serializer" `
             /o:"blehnen" `
             /d:sonar.host.url="https://sonarcloud.io" `
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" `
-            /d:sonar.issue.ignore.multicriteria="e1,e2,e3,e4,e5,e6,e7,e8,e9,e10" `
+            /d:sonar.issue.ignore.multicriteria="e1,e2,e3,e4,e5" `
             /d:sonar.issue.ignore.multicriteria.e1.ruleKey="csharpsquid:S1172" `
             /d:sonar.issue.ignore.multicriteria.e1.resourceKey="**/Deserializer.*.cs" `
             /d:sonar.issue.ignore.multicriteria.e2.ruleKey="csharpsquid:S3011" `
@@ -111,17 +112,7 @@ jobs:
             /d:sonar.issue.ignore.multicriteria.e4.ruleKey="csharpsquid:S2325" `
             /d:sonar.issue.ignore.multicriteria.e4.resourceKey="**/Aq.ExpressionJsonSerializer/Deserializer/*.cs" `
             /d:sonar.issue.ignore.multicriteria.e5.ruleKey="csharpsquid:S2325" `
-            /d:sonar.issue.ignore.multicriteria.e5.resourceKey="**/Aq.ExpressionJsonSerializer/Serializer/*.cs" `
-            /d:sonar.issue.ignore.multicriteria.e6.ruleKey="external_roslyn:CA1822" `
-            /d:sonar.issue.ignore.multicriteria.e6.resourceKey="**/Aq.ExpressionJsonSerializer/Deserializer.cs" `
-            /d:sonar.issue.ignore.multicriteria.e7.ruleKey="external_roslyn:CA1822" `
-            /d:sonar.issue.ignore.multicriteria.e7.resourceKey="**/Aq.ExpressionJsonSerializer/Deserializer/*.cs" `
-            /d:sonar.issue.ignore.multicriteria.e8.ruleKey="external_roslyn:CA1822" `
-            /d:sonar.issue.ignore.multicriteria.e8.resourceKey="**/Aq.ExpressionJsonSerializer/Serializer/*.cs" `
-            /d:sonar.issue.ignore.multicriteria.e9.ruleKey="external_roslyn:CA1861" `
-            /d:sonar.issue.ignore.multicriteria.e9.resourceKey="**/ExpressionJsonSerializerTest.cs" `
-            /d:sonar.issue.ignore.multicriteria.e10.ruleKey="external_roslyn:CA1859" `
-            /d:sonar.issue.ignore.multicriteria.e10.resourceKey="**/ExpressionJsonSerializerTest.cs"
+            /d:sonar.issue.ignore.multicriteria.e5.resourceKey="**/Aq.ExpressionJsonSerializer/Serializer/*.cs"
           dotnet build "Aq.ExpressionJsonSerializer.sln" -c Debug
           dotnet test "Aq.ExpressionJsonSerializer.Tests/Aq.ExpressionJsonSerializer.Tests.csproj" `
             -f net10.0 -c Debug --no-build `
