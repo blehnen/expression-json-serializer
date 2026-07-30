@@ -3,9 +3,17 @@
   <PropertyGroup>
     <TargetFrameworks>net10.0;net8.0;net48;netstandard2.0</TargetFrameworks>
     <PackageId>DotNetWorkQueue.Aq.ExpressionJsonSerializer</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Authors>Brian Lehnen</Authors>
-    <Description>Expression tree JSON serializer for Newtonsoft.Json. Fork of aquilae/expression-json-serializer with .NET 10/8/4.8/Standard 2.0 support.</Description>
+    <Description>Expression tree JSON serializer for Newtonsoft.Json. Thread-safe fork of aquilae/expression-json-serializer, whose shared mutable caches are unsafe under concurrent use. Adds .NET 10/8/4.8/Standard 2.0 multi-targeting and statement-expression support: block, loop, goto/label, switch and try.</Description>
+    <PackageReleaseNotes>1.1.0
+- Implemented LabelExpression, SwitchExpression and TryExpression. Goto/label blocks now round-trip; previously only Expression.Loop with break/continue worked.
+- Fixed serialization of unnamed parameters. Reduced nodes (compound assignment, increment/decrement) produce temporaries with no name, which were written as null and could not be read back.
+- Fixed a race in label target creation: ContainsKey-then-index on a ConcurrentDictionary could return two different LabelTargets for one name.
+- Throw TypeLoadException / MissingMethodException instead of bare System.Exception for unresolvable types and constructors.
+- Test coverage raised from 62% to 87%.
+
+Known limitation: ListInit and MemberInit expressions do not round-trip on .NET Framework 4.8. See https://github.com/blehnen/expression-json-serializer/issues/8</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/blehnen/expression-json-serializer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/blehnen/expression-json-serializer.git</RepositoryUrl>
