@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using Newtonsoft.Json;
 using Xunit;
 using Expr = System.Linq.Expressions.Expression;
 
@@ -26,6 +27,34 @@ namespace Aq.ExpressionJsonSerializer.Tests
         private static void TestBody(ParameterExpression ctx, Expression body)
         {
             TestExpression(Expr.Lambda(body, ctx));
+        }
+
+        /// <summary>
+        /// Round-trip fidelity check that never calls Compile(): serialize, deserialize,
+        /// serialize again, and require the two payloads to match.
+        ///
+        /// Needed because .NET Framework's DynamicMethod cannot emit fault blocks or
+        /// exception filters -- DynamicILGenerator.BeginFaultBlock and
+        /// BeginExceptFilterBlock throw "The requested operation is invalid for
+        /// DynamicMethod". That is a runtime limit on executing those constructs at all,
+        /// not a serializer limit, and it would fire on the source expression before any
+        /// serialization happened. Comparing payloads still proves this library preserved
+        /// the tree.
+        /// </summary>
+        private static void TestBodyWithoutCompiling(ParameterExpression ctx, Expression body)
+        {
+            var source = Expr.Lambda(body, ctx);
+
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(new ExpressionJsonConverter(
+                Assembly.GetAssembly(typeof(ExpressionJsonSerializerTest))));
+
+            var first = JsonConvert.SerializeObject(source, settings);
+            var target = JsonConvert.DeserializeObject<LambdaExpression>(first, settings);
+
+            Assert.NotNull(target);
+            Assert.Equal(source.Body.NodeType, target.Body.NodeType);
+            Assert.Equal(first, JsonConvert.SerializeObject(target, settings));
         }
 
         // ---- Block -------------------------------------------------------------------
@@ -249,11 +278,19 @@ namespace Aq.ExpressionJsonSerializer.Tests
             var c = Ctx();
             var ex = Expr.Parameter(typeof(InvalidOperationException), "ex");
 
-            TestBody(c, Expr.TryCatch(
+            var body = Expr.TryCatch(
                 Expr.Block(
                     Expr.Throw(Expr.New(typeof(InvalidOperationException))),
                     Expr.Constant(1)),
-                Expr.Catch(ex, Expr.Constant(7), Expr.Constant(true))));
+                Expr.Catch(ex, Expr.Constant(7), Expr.Constant(true)));
+
+#if NETFULL
+            // net48 cannot compile an exception filter into a DynamicMethod; the payload
+            // still round-trips. See TestBodyWithoutCompiling.
+            TestBodyWithoutCompiling(c, body);
+#else
+            TestBody(c, body);
+#endif
         }
 
         [Fact]
@@ -277,9 +314,17 @@ namespace Aq.ExpressionJsonSerializer.Tests
 
             // Fault is mutually exclusive with catch/finally in MakeTry, so it needs its
             // own tree rather than being folded into one of the above.
-            TestBody(c, Expr.TryFault(
+            var body = Expr.TryFault(
                 Expr.Field(c, "A"),
-                Expr.Constant(0)));
+                Expr.Constant(0));
+
+#if NETFULL
+            // net48 cannot compile a fault block into a DynamicMethod; the payload still
+            // round-trips. See TestBodyWithoutCompiling.
+            TestBodyWithoutCompiling(c, body);
+#else
+            TestBody(c, body);
+#endif
         }
 
         [Fact]
