@@ -51,7 +51,7 @@ var restored = JsonConvert.DeserializeObject<Expression<Func<MyMessage, bool>>>(
 | Pipeline | What it does |
 |----------|--------------|
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Builds the solution and runs the test suite on net10.0 / net8.0 (ubuntu) and net48 (windows). Also packs and publishes to NuGet on a `v*` tag. |
-| [`.github/workflows/sonarcloud.yml`](.github/workflows/sonarcloud.yml) | SonarCloud CI-based analysis. Builds, runs the net10.0 tests with coverlet (OpenCover format), and feeds coverage to SonarCloud. Requires the `SONAR_TOKEN` repository secret. |
+| [`.github/workflows/sonarcloud.yml`](.github/workflows/sonarcloud.yml) | SonarCloud CI-based analysis. Builds, runs the net10.0 tests with coverlet (OpenCover format), and feeds coverage to SonarCloud. Requires the `SONAR_TOKEN` repository secret. Rule exclusions are documented in [`docs/sonar-exclusions.md`](docs/sonar-exclusions.md). |
 | [`Jenkinsfile`](Jenkinsfile) | Jenkins pipeline that fires on every PR (reported as the `continuous-integration/jenkins/pr-merge` check). Builds and runs the net10.0 / net8.0 test stages on a Docker agent. |
 
 To reproduce the Sonar coverage run locally:

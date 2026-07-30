@@ -75,11 +75,40 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
+          # Rule exclusions below are architectural, not deferred work. Each one is a
+          # decision that the rule is wrong for this codebase; see docs/sonar-exclusions.md
+          # for the full reasoning. Anything genuinely fixable was fixed instead.
+          #
+          #   e1  S1172  "unused parameter" -- all 25 deserializer handlers share the
+          #              uniform (nodeType, type, obj) signature driven by one switch
+          #              table. Some use `type`, some don't. Dropping the unused params
+          #              would make the dispatch heterogeneous, which is strictly worse.
+          #   e2  S3011  "accessibility bypass" -- reflecting over non-public members is
+          #              precisely what deserializing an expression tree requires.
+          #   e3  S2325  "make static" \_ the Serializer/Deserializer handler families are
+          #   e4  CA1822 "make static" /  deliberately uniform instance methods.
+          #   e5  CA1861 "hoist constant array" -- the array literal is inside the
+          #              expression tree under test; hoisting it defeats the test.
+          #   e6  CA1859 "narrow return type" -- Method3 returns object on purpose so the
+          #              MethodResultCast test can exercise an unbox/convert node.
           ${{ runner.temp }}\scanner\dotnet-sonarscanner begin `
             /k:"blehnen_expression-json-serializer" `
             /o:"blehnen" `
             /d:sonar.host.url="https://sonarcloud.io" `
-            /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"
+            /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" `
+            /d:sonar.issue.ignore.multicriteria="e1,e2,e3,e4,e5,e6" `
+            /d:sonar.issue.ignore.multicriteria.e1.ruleKey="csharpsquid:S1172" `
+            /d:sonar.issue.ignore.multicriteria.e1.resourceKey="**/Deserializer.*.cs" `
+            /d:sonar.issue.ignore.multicriteria.e2.ruleKey="csharpsquid:S3011" `
+            /d:sonar.issue.ignore.multicriteria.e2.resourceKey="**/Deserializer.Reflection.cs" `
+            /d:sonar.issue.ignore.multicriteria.e3.ruleKey="csharpsquid:S2325" `
+            /d:sonar.issue.ignore.multicriteria.e3.resourceKey="**/Aq.ExpressionJsonSerializer/**" `
+            /d:sonar.issue.ignore.multicriteria.e4.ruleKey="external_roslyn:CA1822" `
+            /d:sonar.issue.ignore.multicriteria.e4.resourceKey="**/Aq.ExpressionJsonSerializer/**" `
+            /d:sonar.issue.ignore.multicriteria.e5.ruleKey="external_roslyn:CA1861" `
+            /d:sonar.issue.ignore.multicriteria.e5.resourceKey="**/ExpressionJsonSerializerTest.cs" `
+            /d:sonar.issue.ignore.multicriteria.e6.ruleKey="external_roslyn:CA1859" `
+            /d:sonar.issue.ignore.multicriteria.e6.resourceKey="**/ExpressionJsonSerializerTest.cs"
           dotnet build "Aq.ExpressionJsonSerializer.sln" -c Debug
           dotnet test "Aq.ExpressionJsonSerializer.Tests/Aq.ExpressionJsonSerializer.Tests.csproj" `
             -f net10.0 -c Debug --no-build `
