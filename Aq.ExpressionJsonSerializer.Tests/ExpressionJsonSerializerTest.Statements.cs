@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 using Expr = System.Linq.Expressions.Expression;
 
@@ -448,16 +449,13 @@ namespace Aq.ExpressionJsonSerializer.Tests
 
         // ---- ListInit / MemberInit ---------------------------------------------------
         //
-        // Both nodes are reducible, so ExpressionInternal rewrites them to a block with a
-        // temporary before dispatch and their stub handlers are never reached.
+        // Both are reducible, and ExpressionInternal used to lower them to a block with a
+        // temporary before dispatch, so their handlers were never reached. That worked on
+        // .NET 8/10 but not on .NET Framework 4.8, where the reduced block declares no
+        // variables while its body still references the temporary, and the deserialized
+        // tree failed to compile with "referenced from scope '', but it is not defined".
         //
-        // That reduction round-trips on .NET 8/10 but NOT on .NET Framework 4.8, where the
-        // deserialized tree fails to compile with "variable '#nnnnn' ... referenced from
-        // scope '', but it is not defined" -- the temporary's declaration and its uses do
-        // not resolve to the same ParameterExpression after the name-based round trip.
-        // Tracked in #8. Guarded rather than deleted so the platform difference stays
-        // visible; this mirrors how TypeAs handles a Newtonsoft platform difference in the
-        // sibling file.
+        // Both are now serialized natively, so these run unguarded on every target (#8).
 
         private static MemberExpression ListInitBody(ParameterExpression c)
         {
@@ -480,21 +478,6 @@ namespace Aq.ExpressionJsonSerializer.Tests
             return Expr.Add(Expr.Field(init, "A"), Expr.Property(init, "B"));
         }
 
-#if NETFULL
-        [Fact]
-        public void ListInit()
-        {
-            var c = Ctx();
-            Assert.ThrowsAny<Exception>(() => TestBody(c, ListInitBody(c)));
-        }
-
-        [Fact]
-        public void MemberInit()
-        {
-            var c = Ctx();
-            Assert.ThrowsAny<Exception>(() => TestBody(c, MemberInitBody(c)));
-        }
-#else
         [Fact]
         public void ListInit()
         {
@@ -508,6 +491,80 @@ namespace Aq.ExpressionJsonSerializer.Tests
             var c = Ctx();
             TestBody(c, MemberInitBody(c));
         }
-#endif
+
+        [Fact]
+        public void ListInitIsSerializedNatively()
+        {
+            // Guards the fix rather than just the symptom: if the reduce loop starts
+            // lowering these again, the payload becomes a block and this fails even on
+            // platforms where the round trip still happens to work.
+            var c = Ctx();
+            var json = JObject.Parse(JsonConvert.SerializeObject(
+                Expr.Lambda(ListInitBody(c), c), ReflectionSettings()));
+
+            Assert.NotNull(FindByTypeName(json, "listInit"));
+        }
+
+        [Fact]
+        public void MemberInitIsSerializedNatively()
+        {
+            var c = Ctx();
+            var json = JObject.Parse(JsonConvert.SerializeObject(
+                Expr.Lambda(MemberInitBody(c), c), ReflectionSettings()));
+
+            Assert.NotNull(FindByTypeName(json, "memberInit"));
+        }
+
+        [Fact]
+        public void MemberInitWithNestedListBinding()
+        {
+            // MemberListBinding: initialising a collection member in place rather than
+            // assigning a new one. Exercises the ListBinding arm of MemberBinding.
+            var c = Ctx();
+
+            var init = Expr.MemberInit(
+                Expr.New(typeof(Basket)),
+                Expr.ListBind(
+                    typeof(Basket).GetProperty("Items"),
+                    Expr.ElementInit(
+                        typeof(List<int>).GetMethod("Add"), Expr.Constant(4)),
+                    Expr.ElementInit(
+                        typeof(List<int>).GetMethod("Add"), Expr.Constant(5))));
+
+            TestBody(c, Expr.Property(Expr.Property(init, "Items"), "Count"));
+        }
+
+        [Fact]
+        public void MemberInitWithNestedMemberBinding()
+        {
+            // MemberMemberBinding: initialising members of a nested object in place.
+            // Exercises the recursive arm of MemberBinding.
+            var c = Ctx();
+
+            var init = Expr.MemberInit(
+                Expr.New(typeof(Basket)),
+                Expr.MemberBind(
+                    typeof(Basket).GetProperty("Owner"),
+                    Expr.Bind(typeof(Holder).GetProperty("Count"), Expr.Constant(9))));
+
+            TestBody(c, Expr.Property(Expr.Property(init, "Owner"), "Count"));
+        }
+
+        public sealed class Holder
+        {
+            public int Count { get; set; }
+        }
+
+        public sealed class Basket
+        {
+            public Basket()
+            {
+                Items = new List<int>();
+                Owner = new Holder();
+            }
+
+            public List<int> Items { get; private set; }
+            public Holder Owner { get; private set; }
+        }
     }
 }

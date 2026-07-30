@@ -88,6 +88,16 @@ namespace Aq.ExpressionJsonSerializer
             return () => ExpressionInternal(expression);
         }
 
+        /// <summary>
+        /// Nodes that are reducible but have a handler of their own, so lowering them
+        /// would throw away the tree the caller actually wrote.
+        /// </summary>
+        private static bool IsHandledWithoutReducing(Expression expression)
+        {
+            return expression.NodeType == ExpressionType.ListInit
+                || expression.NodeType == ExpressionType.MemberInit;
+        }
+
         private void ExpressionInternal(Expression expression)
         {
             if (expression == null) {
@@ -103,8 +113,18 @@ namespace Aq.ExpressionJsonSerializer
             // caller nothing. Checking first means they get the real reason.
             DynamicExpression(expression);
 
-            while (expression.CanReduce) {
-                expression = expression.Reduce();
+            // ListInit and MemberInit have real handlers below, so they must not be
+            // lowered first. Reducing them stored the compiler's rewriting rather than the
+            // author's tree, which made the payload depend on how a given runtime chooses
+            // to reduce: on .NET Framework the reduced block declares no variables while
+            // its body still references the temporary, so the deserialized tree failed to
+            // compile with "referenced from scope '', but it is not defined" (#8).
+            // Handling them natively removes that dependence entirely, and produces a
+            // smaller, clearer payload.
+            if (!IsHandledWithoutReducing(expression)) {
+                while (expression.CanReduce) {
+                    expression = expression.Reduce();
+                }
             }
 
             _writer.WriteStartObject();
