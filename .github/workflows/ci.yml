@@ -14,9 +14,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-
+# Permissions are declared per job rather than at workflow level, so each job states
+# exactly what it needs (githubactions:S8264). Every job must set them -- with no
+# workflow-level block, an unset job falls back to the repository default, which may
+# be broader than contents: read.
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   DOTNET_NOLOGO: true
@@ -25,6 +26,8 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.tfm }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -67,11 +70,11 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
-      id-token: write        # job-level permissions replace the top-level block
+      id-token: write        # required for the OIDC token exchange
 
     steps:
       - name: NuGet login (OIDC -> short-lived API key)
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         id: login
         with:
           user: blehnen      # nuget.org profile name, not the account email
@@ -93,7 +96,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
-      id-token: write        # job-level permissions replace the top-level block
+      id-token: write        # required for the OIDC token exchange
 
     steps:
       - name: Checkout
@@ -119,7 +122,7 @@ jobs:
       # the secret is not expanded onto the command line (githubactions:S7636) --
       # the upstream NuGet docs example interpolates it directly, which trips that rule.
       - name: NuGet login (OIDC -> short-lived API key)
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         id: login
         with:
           user: blehnen      # nuget.org profile name, not the account email
