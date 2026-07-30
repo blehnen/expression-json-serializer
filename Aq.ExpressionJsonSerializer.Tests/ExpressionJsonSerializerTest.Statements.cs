@@ -154,6 +154,32 @@ namespace Aq.ExpressionJsonSerializer.Tests
         }
 
         [Fact]
+        public void DynamicIsRejectedWithAnExplanation()
+        {
+            var c = Ctx();
+
+            // A CallSiteBinder is normally supplied by a language binder such as
+            // Microsoft.CSharp, but the base class is public and abstract, so a minimal
+            // one is enough to build a real DynamicExpression without that dependency.
+            var body = Expr.Dynamic(new StubBinder(), typeof(int), Expr.Field(c, "A"));
+
+            var ex = Assert.Throws<NotSupportedException>(() => TestBody(c, body));
+            Assert.Contains("DynamicExpression cannot be serialized", ex.Message);
+            Assert.Contains("CallSiteBinder", ex.Message);
+        }
+
+        private sealed class StubBinder : System.Runtime.CompilerServices.CallSiteBinder
+        {
+            public override Expression Bind(
+                object[] args,
+                System.Collections.ObjectModel.ReadOnlyCollection<ParameterExpression> parameters,
+                LabelTarget returnLabel)
+            {
+                return Expr.Return(returnLabel, Expr.Constant(0));
+            }
+        }
+
+        [Fact]
         public void DebugInfoPayloadIsRejectedOnRead()
         {
             // The serializer never emits one, so reach the deserializer path the only way
