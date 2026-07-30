@@ -12,7 +12,7 @@
 
 Expression tree serializer/deserializer for [Newtonsoft.Json](https://www.nuget.org/packages/Newtonsoft.Json/).
 
-Fork of [aquilae/expression-json-serializer](https://github.com/aquilae/expression-json-serializer) with multi-target support and loop/goto expression handling. Published for use by [DotNetWorkQueue](https://github.com/blehnen/DotNetWorkQueue).
+Fork of [aquilae/expression-json-serializer](https://github.com/aquilae/expression-json-serializer), created primarily to make the serializer thread-safe — upstream shares mutable dictionaries across threads, which is unusable under a concurrent consumer. Also adds multi-targeting. Published for use by [DotNetWorkQueue](https://github.com/blehnen/DotNetWorkQueue).
 
 ## Install
 
@@ -41,10 +41,21 @@ var restored = JsonConvert.DeserializeObject<Expression<Func<MyMessage, bool>>>(
 
 ## Changes from upstream
 
+- **Thread-safe: all internal dictionaries use `ConcurrentDictionary`.** This is the main
+  reason the fork exists — upstream's shared mutable caches corrupt under concurrent use.
 - Added net10.0, net8.0, net48, and netstandard2.0 multi-targeting
-- Merged loop and goto expression support
-- Thread-safe: all internal dictionaries use `ConcurrentDictionary`
+- Merged partial loop and goto expression support (see limitation below)
 - Added NuGet packaging and GitHub Actions CI/publish pipeline
+
+## Known limitations
+
+`LabelExpression`, `SwitchExpression`, `TryExpression`, `DebugInfoExpression` and
+`DynamicExpression` are not implemented and throw `NotImplementedException`.
+
+The practical consequence is that the loop/goto support is partial: `Expression.Loop` with
+break and continue labels round-trips, but a bare `Expression.Label` node does not, so
+goto/label blocks cannot be serialized. Tracked in
+[#6](https://github.com/blehnen/expression-json-serializer/issues/6).
 
 ## Build and CI
 
