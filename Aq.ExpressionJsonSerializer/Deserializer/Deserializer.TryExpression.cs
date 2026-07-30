@@ -17,9 +17,10 @@ namespace Aq.ExpressionJsonSerializer
 
             switch (nodeType) {
                 case ExpressionType.Try:
-                    // MakeTry rejects a fault combined with handlers or a finally. Whatever
-                    // the source tree had is what was written, so a valid tree round-trips;
-                    // an invalid payload is rejected here rather than silently reshaped.
+                    // A fault handler cannot coexist with catch handlers or a finally
+                    // block, and MakeTry enforces that. A tree that was valid when
+                    // serialized stays valid, and a payload that is not gets rejected here
+                    // rather than being silently reshaped into something that loads.
                     return Expr.MakeTry(type, body, @finally, fault, handlers);
                 default:
                     throw new NotSupportedException();

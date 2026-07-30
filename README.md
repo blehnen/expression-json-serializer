@@ -1,7 +1,6 @@
 # DotNetWorkQueue.Aq.ExpressionJsonSerializer
 
 [![NuGet](https://img.shields.io/nuget/v/DotNetWorkQueue.Aq.ExpressionJsonSerializer.svg)](https://www.nuget.org/packages/DotNetWorkQueue.Aq.ExpressionJsonSerializer)
-[![Release](https://img.shields.io/github/v/release/blehnen/expression-json-serializer?sort=semver)](https://github.com/blehnen/expression-json-serializer/releases)
 [![License MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/blehnen/expression-json-serializer/blob/master/LICENSE)
 [![CI](https://github.com/blehnen/expression-json-serializer/actions/workflows/ci.yml/badge.svg)](https://github.com/blehnen/expression-json-serializer/actions/workflows/ci.yml)
 [![SonarQube](https://github.com/blehnen/expression-json-serializer/actions/workflows/sonarcloud.yml/badge.svg)](https://github.com/blehnen/expression-json-serializer/actions/workflows/sonarcloud.yml)
