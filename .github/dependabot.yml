@@ -1,0 +1,20 @@
+version: 2
+
+updates:
+  # NuGet/login is pinned to a commit SHA for githubactions:S7637, which means it
+  # cannot pick up fixes on its own -- the pin trades supply-chain risk for staleness
+  # risk. Dependabot rewrites the SHA and the trailing "# v1.2.0" comment together,
+  # so the pin stays both current and readable.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR per batch rather than one per action; these land together and are
+      # verified by the same CI run.
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
