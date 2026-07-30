@@ -131,11 +131,11 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: |
+          # Pushes the .snupkg too. dotnet nuget push uploads a symbol package sitting
+          # beside the .nupkg automatically unless --no-symbols is given, so an explicit
+          # second push is redundant -- the v1.1.0 run logged "Your package was pushed"
+          # followed by "already exists" for the same .snupkg.
           dotnet nuget push "Aq.ExpressionJsonSerializer/bin/Release/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
-          dotnet nuget push "Aq.ExpressionJsonSerializer/bin/Release/*.snupkg" \
             --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
