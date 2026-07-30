@@ -33,6 +33,21 @@ namespace Aq.ExpressionJsonSerializer.Tests
             }
         }
 
+        /// <summary>
+        /// Relabels a node so the deserializer dispatches it somewhere the serializer would
+        /// never send it. The only way to reach handlers for nodes this library refuses to
+        /// write, short of hand-building a whole payload.
+        /// </summary>
+        private static void SetTypeNameWhere(JObject root, string from, string to)
+        {
+            foreach (var token in root.Descendants()) {
+                var o = token as JObject;
+                if (o != null && (string) o["typeName"] == from) {
+                    o["typeName"] = to;
+                }
+            }
+        }
+
         [Fact]
         public void UnknownTypeNameIsRejected()
         {
