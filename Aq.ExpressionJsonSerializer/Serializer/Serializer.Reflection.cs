@@ -6,6 +6,8 @@ namespace Aq.ExpressionJsonSerializer
 {
     partial class Serializer
     {
+        private const string SignatureProp = "signature";
+
         private static readonly ConcurrentDictionary<Type, Tuple<string, string, Type[]>>
             TypeCache = new ConcurrentDictionary<Type, Tuple<string, string, Type[]>>();
 
@@ -59,7 +61,7 @@ namespace Aq.ExpressionJsonSerializer
                 _writer.WriteStartObject();
                 Prop("type", Type(constructor.DeclaringType));
                 Prop("name", constructor.Name);
-                Prop("signature", constructor.ToString());
+                Prop(SignatureProp, constructor.ToString());
                 _writer.WriteEndObject();
             }
         }
@@ -82,13 +84,13 @@ namespace Aq.ExpressionJsonSerializer
 
                     Prop("type", Type(meth.DeclaringType));
                     Prop("name", meth.Name);
-                    Prop("signature", meth.ToString());
+                    Prop(SignatureProp, meth.ToString());
                     Prop("generic", Enumerable(generic, Type));
                 }
                 else {
                     Prop("type", Type(method.DeclaringType));
                     Prop("name", method.Name);
-                    Prop("signature", method.ToString());
+                    Prop(SignatureProp, method.ToString());
                 }
                 _writer.WriteEndObject();
             }
@@ -108,7 +110,7 @@ namespace Aq.ExpressionJsonSerializer
                 _writer.WriteStartObject();
                 Prop("type", Type(property.DeclaringType));
                 Prop("name", property.Name);
-                Prop("signature", property.ToString());
+                Prop(SignatureProp, property.ToString());
                 _writer.WriteEndObject();
             }
         }
@@ -128,7 +130,7 @@ namespace Aq.ExpressionJsonSerializer
                 Prop("type", Type(member.DeclaringType));
                 Prop("memberType", (int) member.MemberType);
                 Prop("name", member.Name);
-                Prop("signature", member.ToString());
+                Prop(SignatureProp, member.ToString());
                 _writer.WriteEndObject();
             }
         }

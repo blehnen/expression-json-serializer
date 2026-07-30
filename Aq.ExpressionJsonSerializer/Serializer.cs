@@ -104,35 +104,41 @@ namespace Aq.ExpressionJsonSerializer
             Prop("nodeType", Enum(expression.NodeType));
             Prop("type", Type(expression.Type));
 
-            if (BinaryExpression(expression)) { goto end; }
-            if (BlockExpression(expression)) { goto end; }
-            if (ConditionalExpression(expression)) { goto end; }
-            if (ConstantExpression(expression)) { goto end; }
-            if (DebugInfoExpression(expression)) { goto end; }
-            if (DefaultExpression(expression)) { goto end; }
-            if (DynamicExpression(expression)) { goto end; }
-            if (GotoExpression(expression)) { goto end; }
-            if (IndexExpression(expression)) { goto end; }
-            if (InvocationExpression(expression)) { goto end; }
-            if (LabelExpression(expression)) { goto end; }
-            if (LambdaExpression(expression)) { goto end; }
-            if (ListInitExpression(expression)) { goto end; }
-            if (LoopExpression(expression)) { goto end; }
-            if (MemberExpression(expression)) { goto end; }
-            if (MemberInitExpression(expression)) { goto end; }
-            if (MethodCallExpression(expression)) { goto end; }
-            if (NewArrayExpression(expression)) { goto end; }
-            if (NewExpression(expression)) { goto end; }
-            if (ParameterExpression(expression)) { goto end; }
-            if (RuntimeVariablesExpression(expression)) { goto end; }
-            if (SwitchExpression(expression)) { goto end; }
-            if (TryExpression(expression)) { goto end; }
-            if (TypeBinaryExpression(expression)) { goto end; }
-            if (UnaryExpression(expression)) { goto end; }
+            // Each handler returns true once it has claimed the node and written its
+            // payload. || short-circuits, so exactly one handler runs -- same dispatch
+            // the previous `goto end` chain performed.
+            var handled =
+                BinaryExpression(expression)
+                || BlockExpression(expression)
+                || ConditionalExpression(expression)
+                || ConstantExpression(expression)
+                || DebugInfoExpression(expression)
+                || DefaultExpression(expression)
+                || DynamicExpression(expression)
+                || GotoExpression(expression)
+                || IndexExpression(expression)
+                || InvocationExpression(expression)
+                || LabelExpression(expression)
+                || LambdaExpression(expression)
+                || ListInitExpression(expression)
+                || LoopExpression(expression)
+                || MemberExpression(expression)
+                || MemberInitExpression(expression)
+                || MethodCallExpression(expression)
+                || NewArrayExpression(expression)
+                || NewExpression(expression)
+                || ParameterExpression(expression)
+                || RuntimeVariablesExpression(expression)
+                || SwitchExpression(expression)
+                || TryExpression(expression)
+                || TypeBinaryExpression(expression)
+                || UnaryExpression(expression);
 
-            throw new NotSupportedException();
+            if (!handled) {
+                throw new NotSupportedException(
+                    "Unsupported expression node type: " + expression.NodeType);
+            }
 
-        end:
             _writer.WriteEndObject();
         }
     }

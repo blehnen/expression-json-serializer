@@ -20,7 +20,7 @@ namespace Aq.ExpressionJsonSerializer
                         if (members == null) {
                             return Expr.New(constructor);
                         }
-                        return Expr.New(constructor, new Expression[0], members);
+                        return Expr.New(constructor, Array.Empty<Expression>(), members);
                     }
                     if (members == null) {
                         return Expr.New(constructor, arguments);

@@ -78,12 +78,14 @@ jobs:
         run: dotnet pack Aq.ExpressionJsonSerializer/Aq.ExpressionJsonSerializer.csproj -c Release --no-restore
 
       - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet nuget push "Aq.ExpressionJsonSerializer/bin/Release/*.nupkg" \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
           dotnet nuget push "Aq.ExpressionJsonSerializer/bin/Release/*.snupkg" \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
