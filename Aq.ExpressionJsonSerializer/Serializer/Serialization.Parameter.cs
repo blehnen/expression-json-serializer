@@ -17,7 +17,14 @@ namespace Aq.ExpressionJsonSerializer
 
             string name;
             if (!_parameterExpressions.TryGetValue(expression, out name)) {
-                name = expression.Name;
+                // Reduce() in ExpressionInternal rewrites compound assignment and
+                // increment/decrement into temporaries that have no Name. Writing a null
+                // name produced JSON the deserializer could not read back: it keys
+                // parameters by name in a ConcurrentDictionary, and TryGetValue(null)
+                // throws ArgumentNullException. Synthesise a stable name instead, using
+                // the same "#" convention the goto and loop serializers already use for
+                // unnamed label targets.
+                name = expression.Name ?? "#" + expression.GetHashCode();
                 _parameterExpressions[expression] = name;
             }
 
