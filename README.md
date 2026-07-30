@@ -48,9 +48,17 @@ var restored = JsonConvert.DeserializeObject<Expression<Func<MyMessage, bool>>>(
 
 ## Known limitations
 
-`DebugInfoExpression` and `DynamicExpression` are not implemented and throw
-`NotImplementedException`. `DebugInfo` needs a `SymbolDocumentInfo` and `Dynamic` needs a
-`CallSiteBinder`, neither of which is meaningfully serializable.
+`DebugInfoExpression` and `DynamicExpression` are **not supported and will not be** — they
+throw `NotSupportedException` with an explanation. These are not gaps waiting to be filled:
+
+- `DebugInfoExpression` carries a `SymbolDocumentInfo` — source file name, language GUID,
+  checksum — which conveys sequence-point information to a debugger attached to the
+  originating assembly. It has no meaning once the tree is rebuilt elsewhere. Strip debug
+  info before serializing.
+- `DynamicExpression` carries a `CallSiteBinder`, a runtime object encoding
+  language-specific call-site semantics together with its own cache state. There is no
+  general way to write one out and rebuild an equivalent binder in another process.
+  Resolve the dynamic call to a concrete `MethodCallExpression` before serializing.
 
 `ListInit` and `MemberInit` expressions do not round-trip on **.NET Framework 4.8**; they
 work on .NET 8 and .NET 10. Tracked in

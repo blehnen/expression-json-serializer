@@ -130,12 +130,82 @@ namespace Aq.ExpressionJsonSerializer.Tests
                     continueLabel)));
         }
 
-        // ---- Label (goto landing sites) ----------------------------------------------
+        // ---- Deliberately unsupported nodes ------------------------------------------
         //
-        // These were pinned as NotImplemented until Label/Switch/Try were implemented.
-        // DebugInfoExpression and DynamicExpression remain unimplemented and are not
-        // covered here -- neither can be constructed without a debug info provider or a
-        // CallSiteBinder respectively.
+        // DebugInfoExpression and DynamicExpression are not gaps to be filled. Neither has
+        // a serializable form: DebugInfo carries a SymbolDocumentInfo describing a source
+        // file in the originating assembly, and Dynamic carries a CallSiteBinder, a
+        // runtime object with per-site cache state. Both throw NotSupportedException with
+        // an explanation of why and what to do instead.
+
+        [Fact]
+        public void DebugInfoIsRejectedWithAnExplanation()
+        {
+            var c = Ctx();
+            var doc = Expr.SymbolDocument("Source.cs");
+
+            var body = Expr.Block(
+                Expr.DebugInfo(doc, 1, 1, 1, 20),
+                Expr.Field(c, "A"));
+
+            var ex = Assert.Throws<NotSupportedException>(() => TestBody(c, body));
+            Assert.Contains("DebugInfoExpression cannot be serialized", ex.Message);
+            Assert.Contains("SymbolDocumentInfo", ex.Message);
+        }
+
+        [Fact]
+        public void DynamicIsRejectedWithAnExplanation()
+        {
+            var c = Ctx();
+
+            // A CallSiteBinder is normally supplied by a language binder such as
+            // Microsoft.CSharp, but the base class is public and abstract, so a minimal
+            // one is enough to build a real DynamicExpression without that dependency.
+            var body = Expr.Dynamic(new StubBinder(), typeof(int), Expr.Field(c, "A"));
+
+            var ex = Assert.Throws<NotSupportedException>(() => TestBody(c, body));
+            Assert.Contains("DynamicExpression cannot be serialized", ex.Message);
+            Assert.Contains("CallSiteBinder", ex.Message);
+        }
+
+        private sealed class StubBinder : System.Runtime.CompilerServices.CallSiteBinder
+        {
+            public override Expression Bind(
+                object[] args,
+                System.Collections.ObjectModel.ReadOnlyCollection<ParameterExpression> parameters,
+                LabelTarget returnLabel)
+            {
+                return Expr.Return(returnLabel, Expr.Constant(0));
+            }
+        }
+
+        [Fact]
+        public void DebugInfoPayloadIsRejectedOnRead()
+        {
+            // The serializer never emits one, so reach the deserializer path the only way
+            // a real caller could: a payload written by something else.
+            var c = Ctx();
+            var source = Expr.Lambda(Expr.Field(c, "A"), c);
+
+            var ex = Assert.Throws<NotSupportedException>(
+                () => DeserializeTampered(source, o => SetTypeNameWhere(o, "member", "debugInfo")));
+
+            Assert.Contains("DebugInfoExpression cannot be deserialized", ex.Message);
+        }
+
+        [Fact]
+        public void DynamicPayloadIsRejectedOnRead()
+        {
+            var c = Ctx();
+            var source = Expr.Lambda(Expr.Field(c, "A"), c);
+
+            var ex = Assert.Throws<NotSupportedException>(
+                () => DeserializeTampered(source, o => SetTypeNameWhere(o, "member", "dynamic")));
+
+            Assert.Contains("DynamicExpression cannot be deserialized", ex.Message);
+        }
+
+        // ---- Label (goto landing sites) ----------------------------------------------
 
         [Fact]
         public void GotoJumpOverStatement()

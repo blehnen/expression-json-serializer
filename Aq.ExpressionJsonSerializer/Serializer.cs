@@ -95,6 +95,14 @@ namespace Aq.ExpressionJsonSerializer
                 return;
             }
 
+            // Refuse dynamic nodes before reducing. DynamicExpression.CanReduce is true,
+            // and the reduction rewrites it into a CallSite invocation that carries the
+            // CallSiteBinder as a ConstantExpression. Serializing that constant walks the
+            // binder's object graph and fails deep inside Newtonsoft with "Self
+            // referencing loop detected for property 'ManifestModule'", which tells the
+            // caller nothing. Checking first means they get the real reason.
+            DynamicExpression(expression);
+
             while (expression.CanReduce) {
                 expression = expression.Reduce();
             }
