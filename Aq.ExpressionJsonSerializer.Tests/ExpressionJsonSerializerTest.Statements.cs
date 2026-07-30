@@ -230,7 +230,7 @@ namespace Aq.ExpressionJsonSerializer.Tests
         // visible; this mirrors how TypeAs handles a Newtonsoft platform difference in the
         // sibling file.
 
-        private static Expression ListInitBody(ParameterExpression c)
+        private static MemberExpression ListInitBody(ParameterExpression c)
         {
             return Expr.Property(
                 Expr.ListInit(
@@ -241,7 +241,7 @@ namespace Aq.ExpressionJsonSerializer.Tests
                 "Count");
         }
 
-        private static Expression MemberInitBody(ParameterExpression c)
+        private static BinaryExpression MemberInitBody(ParameterExpression c)
         {
             var init = Expr.MemberInit(
                 Expr.New(typeof(Context)),
