@@ -101,13 +101,13 @@ namespace Aq.ExpressionJsonSerializer
             throw new NotSupportedException();
         }
 
-        private LabelTarget CreateLabelTarget(string name, Type type) {
-            if (_labelTargets.ContainsKey(name))
-                return _labelTargets[name];
-
-            _labelTargets[name] = System.Linq.Expressions.Expression.Label(type, name);
-
-            return _labelTargets[name];
+        private LabelTarget CreateLabelTarget(string name, Type type)
+        {
+            // GetOrAdd rather than ContainsKey-then-index: the latter is two separate
+            // operations on a ConcurrentDictionary, so a concurrent writer could slip
+            // between them and hand back two different LabelTargets for one name.
+            return _labelTargets.GetOrAdd(
+                name, n => System.Linq.Expressions.Expression.Label(type, n));
         }
     }
 }

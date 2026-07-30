@@ -8,6 +8,8 @@ namespace Aq.ExpressionJsonSerializer
 {
     partial class Deserializer
     {
+        private const string SignatureProp = "signature";
+
         private static readonly ConcurrentDictionary<Assembly, ConcurrentDictionary<string, ConcurrentDictionary<string, Type>>>
             TypeCache = new ConcurrentDictionary<Assembly, ConcurrentDictionary<string, ConcurrentDictionary<string, Type>>>();
 
@@ -45,7 +47,7 @@ namespace Aq.ExpressionJsonSerializer
                     type = assembly.GetType(typeName);
                 }
                 if (type == null) {
-                    throw new Exception(
+                    throw new TypeLoadException(
                         "Type could not be found: "
                         + assemblyName + "." + typeName
                     );
@@ -69,7 +71,7 @@ namespace Aq.ExpressionJsonSerializer
             var obj = (JObject) token;
             var type = Prop(obj, "type", Type);
             var name = Prop(obj, "name").Value<string>();
-            var signature = Prop(obj, "signature").Value<string>();
+            var signature = Prop(obj, SignatureProp).Value<string>();
 
             ConstructorInfo constructor;
             ConcurrentDictionary<string, ConstructorInfo> cache2;
@@ -119,7 +121,7 @@ namespace Aq.ExpressionJsonSerializer
                     .FirstOrDefault(c => c.Name == name && c.ToString() == signature);
                 
                 if (constructor == null) {
-                    throw new Exception(
+                    throw new MissingMethodException(
                         "Constructor for type \""
                         + type.FullName +
                         "\" with signature \""
@@ -141,7 +143,7 @@ namespace Aq.ExpressionJsonSerializer
             var obj = (JObject) token;
             var type = Prop(obj, "type", Type);
             var name = Prop(obj, "name").Value<string>();
-            var signature = Prop(obj, "signature").Value<string>();
+            var signature = Prop(obj, SignatureProp).Value<string>();
             var generic = Prop(obj, "generic", Enumerable(Type));
 
             var methods = type.GetMethods(
@@ -166,7 +168,7 @@ namespace Aq.ExpressionJsonSerializer
             var obj = (JObject) token;
             var type = Prop(obj, "type", Type);
             var name = Prop(obj, "name").Value<string>();
-            var signature = Prop(obj, "signature").Value<string>();
+            var signature = Prop(obj, SignatureProp).Value<string>();
 
             var properties = type.GetProperties(
                 BindingFlags.Public | BindingFlags.NonPublic |
@@ -184,7 +186,7 @@ namespace Aq.ExpressionJsonSerializer
             var obj = (JObject) token;
             var type = Prop(obj, "type", Type);
             var name = Prop(obj, "name").Value<string>();
-            var signature = Prop(obj, "signature").Value<string>();
+            var signature = Prop(obj, SignatureProp).Value<string>();
             var memberType = (MemberTypes) Prop(obj, "memberType").Value<int>();
 
             var members = type.GetMembers(

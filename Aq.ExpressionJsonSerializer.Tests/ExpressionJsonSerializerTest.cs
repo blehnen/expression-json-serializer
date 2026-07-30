@@ -214,9 +214,9 @@ namespace Aq.ExpressionJsonSerializer.Tests
         }
 
         [Fact]
-        public void LambdaMultiThreaded()
+        public async Task LambdaMultiThreaded()
         {
-            var count = 100;
+            const int count = 100;
             var tasks = new Task[count];
 
             Parallel.For(0, count,
@@ -228,7 +228,9 @@ namespace Aq.ExpressionJsonSerializer.Tests
                     tasks[index] = t;
                 });
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
+
+            Assert.All(tasks, t => Assert.Equal(TaskStatus.RanToCompletion, t.Status));
         }
 
         private sealed class Context
