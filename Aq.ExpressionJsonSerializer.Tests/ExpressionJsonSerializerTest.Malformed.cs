@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -82,6 +83,53 @@ namespace Aq.ExpressionJsonSerializer.Tests
 
             Assert.Throws<NotSupportedException>(
                 () => DeserializeTampered(source, o => SetNodeTypeWhere(o, "unary", "Block")));
+        }
+
+        [Fact]
+        public void ListInitNodeWithUnsupportedNodeTypeIsRejected()
+        {
+            var c = Expr.Parameter(typeof(Context), "c");
+            var source = Expr.Lambda(
+                Expr.Property(
+                    Expr.ListInit(Expr.New(typeof(List<int>)), Expr.Constant(1)),
+                    "Count"),
+                c);
+
+            Assert.Throws<NotSupportedException>(
+                () => DeserializeTampered(source, o => SetNodeTypeWhere(o, "listInit", "Block")));
+        }
+
+        [Fact]
+        public void MemberInitNodeWithUnsupportedNodeTypeIsRejected()
+        {
+            var c = Expr.Parameter(typeof(Context), "c");
+            var source = Expr.Lambda(MemberInitBody(c), c);
+
+            Assert.Throws<NotSupportedException>(
+                () => DeserializeTampered(source, o => SetNodeTypeWhere(o, "memberInit", "Block")));
+        }
+
+        [Fact]
+        public void UnknownMemberBindingTypeIsRejected()
+        {
+            // MemberBindingType has three values and all three are handled, so the only way
+            // to reach the default arm is a payload naming a value outside the enum.
+            // Enum.Parse accepts a bare number, which is how a foreign or corrupted payload
+            // would present one.
+            var c = Expr.Parameter(typeof(Context), "c");
+            var source = Expr.Lambda(MemberInitBody(c), c);
+
+            var ex = Assert.Throws<NotSupportedException>(
+                () => DeserializeTampered(source, o => {
+                    foreach (var token in o.Descendants()) {
+                        var obj = token as JObject;
+                        if (obj != null && obj["bindingType"] != null) {
+                            obj["bindingType"] = "99";
+                        }
+                    }
+                }));
+
+            Assert.Contains("Unsupported member binding type", ex.Message);
         }
 
         // ---- Null reflection payloads --------------------------------------------------

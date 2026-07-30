@@ -64,6 +64,28 @@ Everything else round-trips on every target, including full statement-expression
 blocks, loops with break and continue, goto/label, switch, try with catch/filter/fault/
 finally, collection and object initialisers, and indexers.
 
+## Payload compatibility
+
+The JSON payload carries no format version, and **1.2.0 changes how two node types are
+written**.
+
+`ListInit` and `MemberInit` — collection and object initialisers, `new List<int> { 1, 2 }`
+and `new Thing { A = 1 }` — used to be stored in the lowered form the compiler reduces them
+to: a block with a temporary variable. From 1.2.0 they are written natively. That change is
+what makes them round-trip on .NET Framework 4.8, where the lowered form was not portable.
+
+- **Reading is backward compatible.** 1.2.0 still deserializes payloads written by 1.1.0
+  and earlier, including the lowered block form.
+- **Writing is not forward compatible.** A payload written by 1.2.0 containing a collection
+  or object initialiser **cannot be read by 1.1.0 or earlier**.
+
+If payloads outlive the process that wrote them — a queue, a cache, a database column —
+then **upgrade readers before writers**. For a DotNetWorkQueue deployment that means
+consumers first, then producers. Upgrading producers first will fail any queued message
+containing an initialiser as soon as a not-yet-upgraded consumer picks it up.
+
+Expressions without initialisers are unaffected in both directions.
+
 ## Build and CI
 
 | Pipeline | What it does |
